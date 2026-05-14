@@ -182,11 +182,23 @@ def _classify_address(address: str) -> AddressType:
 
     On Linux/BlueZ the address is a real MAC; on macOS CoreBluetooth it is
     a peripheral UUID (16 bytes). For MAC addresses, the top two bits of
-    the most significant byte encode the random-address subtype:
-    ``11`` = static, ``01`` = resolvable private, ``00`` = non-resolvable
-    private. A public address has no such pattern; the BLE stack
-    annotates that separately (not available here), so we conservatively
-    label MACs without a random top-bit pattern as PUBLIC.
+    the most significant byte encode the *random* address subtype per BLE
+    Core Spec Vol 6 Part B 1.3:
+
+    - ``11`` = static random (stable for the device lifetime)
+    - ``01`` = resolvable private (rotates per ~15 min)
+    - ``00`` = non-resolvable private (rotates)
+    - ``10`` = reserved
+
+    A *public* address has **no** distinguishing top-bit pattern — it is
+    OUI-assigned and can therefore collide with any of the random ranges.
+    Only the BLE stack knows whether a given MAC was advertised as public
+    or random, and that hint is not surfaced through
+    :class:`BluetoothServiceInfoBleak`. We therefore never infer PUBLIC
+    from the MAC alone; the strongest claim we can make from the bits is
+    RANDOM_STATIC. Everything else falls through to UNKNOWN, which keeps
+    :func:`derive_stable_id` from using a potentially-rotating address as
+    a stable tier-4 anchor.
     """
     if _UUID_RE.match(address):
         return AddressType.MACOS_UUID
@@ -198,7 +210,7 @@ def _classify_address(address: str) -> AddressType:
         return AddressType.RANDOM_STATIC
     if top_two == _RANDOM_PRIVATE_RESOLVABLE_TOP_BITS:
         return AddressType.RANDOM_PRIVATE
-    return AddressType.PUBLIC
+    return AddressType.UNKNOWN
 
 
 def _decode_eddystone_url_body(body: bytes) -> str:
@@ -364,9 +376,12 @@ def derive_stable_id(service_info: BluetoothServiceInfoBleak) -> str | None:
     uid = _extract_uid_from_service_data(service_info.service_data)
     if uid is not None:
         return f"eddystone:{uid.namespace_hex}:{uid.instance_hex}"
-    # Tier 4: BLE address — only stable variants.
+    # Tier 4: BLE address — only the pattern-verifiable stable variant.
+    # PUBLIC is intentionally excluded: from the MAC alone we cannot
+    # distinguish it from a non-resolvable private address, and using
+    # the latter as a stable id would flap as the device rotates.
     addr_type = _classify_address(service_info.address)
-    if addr_type in (AddressType.PUBLIC, AddressType.RANDOM_STATIC):
+    if addr_type is AddressType.RANDOM_STATIC:
         return f"ble:{service_info.address.lower()}"
     # macOS UUID is stable within a single host but not portable; we
     # accept it as a development-time fallback so unit-tests on macOS

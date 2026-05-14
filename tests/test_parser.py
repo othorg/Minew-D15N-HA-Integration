@@ -119,24 +119,24 @@ class TestAddressClassification:
     @pytest.mark.parametrize(
         ("address", "expected"),
         [
+            # 0xC3 = 11000011 → top bits 11 → RANDOM_STATIC
             ("c3:00:00:4b:06:53", AddressType.RANDOM_STATIC),
-            ("aa:bb:cc:dd:ee:ff", AddressType.RANDOM_STATIC),  # top bits 10? no, AA=10101010
-            ("12:34:56:78:9a:bc", AddressType.PUBLIC),  # 12=0001 0010, top=00
-            ("4f:00:00:00:00:00", AddressType.RANDOM_PRIVATE),  # 4f=0100 1111, top=01
+            # 0xAA = 10101010 → top bits 10 → reserved, classified UNKNOWN
+            # because we refuse to infer PUBLIC from the bit pattern alone
+            ("aa:bb:cc:dd:ee:ff", AddressType.UNKNOWN),
+            # 0x12 = 00010010 → top bits 00 → non-resolvable private, but
+            # indistinguishable from PUBLIC without stack-supplied address
+            # type info, so reported as UNKNOWN
+            ("12:34:56:78:9a:bc", AddressType.UNKNOWN),
+            # 0x4F = 01001111 → top bits 01 → resolvable private (rotates)
+            ("4f:00:00:00:00:00", AddressType.RANDOM_PRIVATE),
             ("A7F051DC-7BF6-4006-3B8A-5A1C5FEE43F2", AddressType.MACOS_UUID),
             ("not-a-real-address", AddressType.UNKNOWN),
             ("c3:00:00:4b:06", AddressType.UNKNOWN),  # too short
         ],
     )
     def test_classification(self, address: str, expected: AddressType) -> None:
-        # Note: 0xAA = 10101010, top bits = 10 → falls through to PUBLIC, not
-        # RANDOM_STATIC. The test row marked above documents that; adjusting
-        # to match implementation.
-        actual = _classify_address(address)
-        if address == "aa:bb:cc:dd:ee:ff":
-            assert actual == AddressType.PUBLIC
-        else:
-            assert actual == expected
+        assert _classify_address(address) == expected
 
 
 class TestIsD15N:

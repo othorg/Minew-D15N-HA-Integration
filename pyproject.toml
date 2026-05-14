@@ -4,12 +4,12 @@ version = "0.1.0"
 description = "Home Assistant custom integration for Minew D15N keychain BLE beacons"
 readme = "README.md"
 license = { text = "MIT" }
-requires-python = ">=3.14.2"
+requires-python = ">=3.13"
 authors = [{ name = "othorg" }]
 
 [tool.ruff]
 line-length = 100
-target-version = "py314"
+target-version = "py313"
 src = ["custom_components", "tests", "scripts"]
 extend-exclude = ["Android", "iOS", ".venv"]
 
@@ -40,6 +40,10 @@ quote-style = "double"
 indent-style = "space"
 
 [tool.mypy]
+# Pinned to 3.14 because HA Core 2026.5 itself uses PEP 758 (parenthesis-less
+# except expressions) which mypy parses correctly only on 3.14+. The
+# project-level ``requires-python = ">=3.13"`` still applies to our own
+# code; ruff enforces 3.13-compatible syntax for the parts we own.
 python_version = "3.14"
 strict = true
 warn_unreachable = true
@@ -57,4 +61,12 @@ asyncio_mode = "auto"
 testpaths = ["tests"]
 pythonpath = ["."]
 addopts = ["-q", "--strict-markers", "--strict-config"]
-filterwarnings = ["error"]
+filterwarnings = [
+    "error",
+    # pytest-asyncio 1.3.x emits this deprecation on every async fixture
+    # under pytest 9; the upstream fix lives in pytest-asyncio. Filter
+    # narrowly so we still catch other deprecations.
+    "ignore::pytest.PytestRemovedIn9Warning",
+    # HA Core deprecation chatter from its module load on Python 3.14.
+    "ignore::DeprecationWarning:homeassistant",
+]

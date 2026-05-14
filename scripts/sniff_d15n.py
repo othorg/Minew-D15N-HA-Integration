@@ -197,7 +197,11 @@ async def run_capture(
 
     loop = asyncio.get_running_loop()
     for sig in (signal.SIGINT, signal.SIGTERM):
-        loop.add_signal_handler(sig, _sig_handler)
+        # Windows asyncio event loop does not support signal handlers;
+        # capture still terminates cleanly on KeyboardInterrupt because
+        # asyncio.run propagates it after the wait_for timeout.
+        with contextlib.suppress(NotImplementedError, RuntimeError):
+            loop.add_signal_handler(sig, _sig_handler)
 
     def callback(device: BLEDevice, adv: AdvertisementData) -> None:
         if not _matches_filters(device, adv, name_prefix, mac, service_uuid):

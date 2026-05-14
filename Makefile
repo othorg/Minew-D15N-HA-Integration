@@ -1,5 +1,9 @@
 .PHONY: help venv lock install lint format type test check clean
 
+# Override with `make venv PYTHON=python3.14` if you have multiple
+# interpreters installed; defaults to whichever python3 is on PATH.
+# Project requires Python >= 3.13 (matches HA Core 2026.5 supported range).
+PYTHON ?= python3
 PY := .venv/bin/python
 PIP := .venv/bin/pip
 RUFF := .venv/bin/ruff
@@ -8,7 +12,7 @@ PYTEST := .venv/bin/pytest
 
 help:
 	@echo "Available targets:"
-	@echo "  venv     - Create Python 3.14 venv in .venv/"
+	@echo "  venv     - Create Python >=3.13 venv in .venv/ (override with PYTHON=...)"
 	@echo "  lock     - Re-generate requirements-dev.txt from .in (pip-compile)"
 	@echo "  install  - Install pinned, hash-verified dev dependencies"
 	@echo "  lint     - Run ruff linter"
@@ -19,7 +23,7 @@ help:
 	@echo "  clean    - Remove .venv and caches"
 
 venv:
-	python3.14 -m venv .venv
+	$(PYTHON) -m venv .venv
 	$(PIP) install --upgrade pip pip-tools
 
 lock:
