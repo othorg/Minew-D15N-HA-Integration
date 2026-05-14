@@ -400,3 +400,42 @@ class TestOptionsFlow:
             await hass.config_entries.options.async_configure(
                 result["flow_id"], user_input={CONF_MAX_AGE_SECONDS: 300, CONF_MIN_RSSI: -20}
             )
+
+    @pytest.mark.asyncio
+    async def test_accepts_lower_rssi_boundary(self, hass: Any) -> None:
+        entry = MockConfigEntry(
+            domain=DOMAIN,
+            unique_id="eddystone:00112233445566778899:abcde76b01f4",
+            data={CONF_ADDRESS: "c3:00:00:4b:06:53"},
+            options={
+                CONF_MAX_AGE_SECONDS: DEFAULT_MAX_AGE_SECONDS,
+                CONF_MIN_RSSI: DEFAULT_MIN_RSSI,
+            },
+        )
+        entry.add_to_hass(hass)
+
+        result = await hass.config_entries.options.async_init(entry.entry_id)
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"], user_input={CONF_MAX_AGE_SECONDS: 300, CONF_MIN_RSSI: -120}
+        )
+        assert result["type"] == FlowResultType.CREATE_ENTRY
+        assert entry.options[CONF_MIN_RSSI] == -120
+
+    @pytest.mark.asyncio
+    async def test_rejects_below_lower_rssi_boundary(self, hass: Any) -> None:
+        entry = MockConfigEntry(
+            domain=DOMAIN,
+            unique_id="eddystone:00112233445566778899:abcde76b01f4",
+            data={CONF_ADDRESS: "c3:00:00:4b:06:53"},
+            options={
+                CONF_MAX_AGE_SECONDS: DEFAULT_MAX_AGE_SECONDS,
+                CONF_MIN_RSSI: DEFAULT_MIN_RSSI,
+            },
+        )
+        entry.add_to_hass(hass)
+
+        result = await hass.config_entries.options.async_init(entry.entry_id)
+        with pytest.raises(InvalidData):
+            await hass.config_entries.options.async_configure(
+                result["flow_id"], user_input={CONF_MAX_AGE_SECONDS: 300, CONF_MIN_RSSI: -121}
+            )

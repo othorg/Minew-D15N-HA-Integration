@@ -99,8 +99,16 @@ Click **Configure** on an existing integration entry to adjust:
 | Option | Default | Range | Effect |
 |---|---|---|---|
 | **Away after (seconds)** | 300 | 30–3600 | Seconds of BLE silence before `device_tracker` switches to `not_home` |
+| **Minimum signal strength (dBm)** | -90 | -120–-40 | Presence only counts when latest RSSI is at or above this value |
 
 Changes take effect immediately — no restart required.
+
+Recommended tuning:
+
+- Use **`Away after`** to control time-based presence decay when no packets are received.
+- Use **`Minimum signal strength`** to control distance sensitivity.
+- For a permissive "still nearby around the WoMo" setup, start around **`-100` to `-110 dBm`**.
+- For stricter "must be close to the adapter", start around **`-75` to `-85 dBm`**.
 
 ---
 
@@ -156,6 +164,16 @@ automation:
 The default "away after" window is 300 s (5 min). If the beacon is far
 from the Bluetooth adapter or has a low transmission interval, increase
 the window via *Configure → Away after*.
+
+If RSSI is frequently lower than your configured threshold, reduce
+strictness via *Configure → Minimum signal strength (dBm)* (e.g. from
+`-75` to `-95` or `-110`).
+
+### Tracker stays `home` too long after leaving
+
+Lower *Away after (seconds)* (e.g. `300` → `60`) so stale presence expires
+faster. If weak long-range packets keep arriving, increase
+*Minimum signal strength (dBm)* strictness (e.g. `-100` → `-85`).
 
 ### Battery sensor shows unavailable
 

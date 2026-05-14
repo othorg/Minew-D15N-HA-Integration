@@ -24,7 +24,7 @@ The options flow exposes two presence thresholds:
 
 - ``max_age_seconds`` (30..3600, default 300): inactivity window after
   which ``device_tracker`` switches to ``not_home``.
-- ``min_rssi`` (-100..-40 dBm, default -90): minimum signal strength
+- ``min_rssi`` (-120..-40 dBm, default -90): minimum signal strength
   required for ``home``.
 """
 

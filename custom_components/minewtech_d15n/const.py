@@ -30,7 +30,7 @@ CONF_MAX_AGE_SECONDS: Final = "max_age_seconds"
 # accepts beacons at the edge of BLE range.
 CONF_MIN_RSSI: Final = "min_rssi"
 DEFAULT_MIN_RSSI: Final = -90
-MIN_MIN_RSSI: Final = -100
+MIN_MIN_RSSI: Final = -120
 MAX_MIN_RSSI: Final = -40
 
 # Bluetooth matcher constants — verified in Phase 1 captures (2026-05-14,
