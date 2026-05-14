@@ -84,6 +84,7 @@ class TestProcessUpdate:
         )
         coord._last_advertisement = None
         coord._processors = []
+        coord._update_listeners = []
         coord.last_update_success = True
         coord.logger = MagicMock()
         return coord

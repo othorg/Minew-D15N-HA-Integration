@@ -22,10 +22,13 @@ from habluetooth import BluetoothScanningMode
 from homeassistant.components.bluetooth.passive_update_processor import (
     PassiveBluetoothProcessorCoordinator,
 )
+from homeassistant.core import callback
 
 from .parser import D15NAdvertisement, parse
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from habluetooth.models import BluetoothServiceInfoBleak
     from homeassistant.core import HomeAssistant
 
@@ -53,6 +56,22 @@ class D15NPassiveCoordinator(
             connectable=False,
         )
         self._last_advertisement: D15NAdvertisement | None = None
+        self._update_listeners: list[Callable[[], None]] = []
+
+    @callback
+    def async_add_listener(self, listener: Callable[[], None]) -> Callable[[], None]:
+        """Register a callback invoked after every successfully parsed ADV.
+
+        Returns a de-registration callable suitable for use with
+        ``Entity.async_on_remove``.
+        """
+        self._update_listeners.append(listener)
+
+        @callback
+        def remove() -> None:
+            self._update_listeners.remove(listener)
+
+        return remove
 
     @staticmethod
     def _update_method(
@@ -84,3 +103,5 @@ class D15NPassiveCoordinator(
         if update is not None:
             self._last_advertisement = update
         super()._process_update(update, was_available)
+        for listener in list(self._update_listeners):
+            listener()
