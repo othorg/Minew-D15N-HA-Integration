@@ -15,6 +15,16 @@ home-assistant-bluetooth>=2.0,<3
 # our own ranges leads to resolver conflicts — leave them to HA.
 pytest-homeassistant-custom-component>=0.13
 
+# HA Core 2026.5 unconditionally imports these in its `usb` component during
+# module load. They are not picked up transitively by HA on macOS dev
+# machines because the dependency is conditional (`platform_system == 'Linux'`
+# in HA's setup), but our coordinator imports HA bluetooth which loads usb.
+aiousbwatcher>=1.0
+serialx>=1.0
+# serialx imports aioesphomeapi from its esphome serial backend; HA Core
+# does not mark this as a required dep on macOS so we pin it ourselves.
+aioesphomeapi>=45
+
 # --- Static Analysis / Lint ---
 ruff>=0.5
 mypy>=1.11

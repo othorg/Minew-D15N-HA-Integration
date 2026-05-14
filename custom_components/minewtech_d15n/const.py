@@ -8,6 +8,14 @@ DOMAIN: Final = "minewtech_d15n"
 MANUFACTURER: Final = "Minewtech"
 MODEL: Final = "D15N"
 
+# Platforms forwarded by __init__.py async_setup_entry. The ``event``
+# platform is intentionally omitted per the §10.1 fallback A2 decision:
+# v1 ships without button-event entities. See memory/fallback_a2_button_events.md.
+PLATFORMS: Final = ("device_tracker", "sensor")
+
+# Key under which the BLE address is persisted in ConfigEntry.data.
+CONF_ADDRESS: Final = "address"
+
 # Bluetooth matcher constants — verified in Phase 1 captures (2026-05-14,
 # docs/adv-format.md). The D15N broadcasts a vendor-specific service UUID
 # in every Eddystone advertisement; local_name is never present in the
