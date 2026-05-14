@@ -1,0 +1,59 @@
+[project]
+name = "minewtech-d15n-ha"
+version = "0.1.0"
+description = "Home Assistant custom integration for Minew D15N keychain BLE beacons"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.14.2"
+authors = [{ name = "othorg" }]
+
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+src = ["custom_components", "tests", "scripts"]
+extend-exclude = ["Android", "iOS", ".venv"]
+
+[tool.ruff.lint]
+select = [
+    "E", "W",      # pycodestyle
+    "F",            # pyflakes
+    "I",            # isort
+    "B",            # flake8-bugbear
+    "UP",           # pyupgrade
+    "SIM",          # flake8-simplify
+    "RUF",          # ruff-specific
+    "PT",           # pytest-style
+    "C4",           # comprehensions
+    "TCH",          # type-checking imports
+    "PL",           # pylint subset
+]
+ignore = [
+    "PLR0913",      # too many arguments (HA entities legitimately have many)
+    "E501",         # line length handled by formatter
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["PLR2004", "S101"]    # magic values + asserts ok in tests
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.mypy]
+python_version = "3.14"
+strict = true
+warn_unreachable = true
+disallow_untyped_decorators = false
+files = ["custom_components/minewtech_d15n", "scripts"]
+exclude = ['^Android/', '^iOS/', '\.venv/']
+
+[[tool.mypy.overrides]]
+module = ["homeassistant.*", "bleak.*", "habluetooth.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+asyncio_mode = "auto"
+testpaths = ["tests"]
+addopts = ["-q", "--strict-markers", "--strict-config"]
+filterwarnings = ["error"]

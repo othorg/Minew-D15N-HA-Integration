@@ -1,0 +1,44 @@
+# Credentials / secrets (NEVER commit)
+.ha_token_*
+*.token
+secrets.yaml
+*.env
+.envrc
+
+# Planning doc (kept local, not shared via git)
+PLAN.md
+
+# Python / venv
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+
+# Vendor SDK (Minew copyright, NICHT redistributable) — bleibt nur lokal
+Android.zip
+iOS.zip
+Android/
+iOS/
+
+# OS / editor cruft
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Local sniffing captures / scratch
+captures/
+scratch/
+*.pcap
+*.pcapng
+adv_dumps/
