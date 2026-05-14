@@ -15,10 +15,21 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.14"
+          python-version: "3.13"
 
-      - name: Install dependencies
-        run: pip install --require-hashes -r requirements-dev.txt
+      - name: Install lint tools
+        run: |
+          pip install --upgrade pip
+          # mypy.overrides marks homeassistant.*, bleak.*, habluetooth.* as
+          # ignore_missing_imports = true, so we only need the packages that
+          # our own code directly imports at type-check time.
+          pip install \
+            "ruff>=0.5" \
+            "mypy>=1.11" \
+            "habluetooth>=6.1" \
+            "home-assistant-bluetooth>=2.0" \
+            "bleak>=2.1" \
+            "voluptuous>=0.15"
 
       - name: ruff check
         run: ruff check .

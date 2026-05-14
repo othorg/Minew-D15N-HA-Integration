@@ -15,10 +15,28 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
+          # pytest-homeassistant-custom-component 0.13.x depends on
+          # Home Assistant Core 2026.x which requires Python 3.14.
           python-version: "3.14"
+          allow-prereleases: true
 
-      - name: Install dependencies
-        run: pip install --require-hashes -r requirements-dev.txt
+      - name: Install test dependencies
+        run: |
+          pip install --upgrade pip
+          # Install from range constraints, not the hash-pinned lock file.
+          # The lock file is generated on macOS; binary-wheel hashes differ
+          # per platform so --require-hashes fails on Linux.
+          pip install \
+            "pytest>=8.2" \
+            "pytest-asyncio>=0.24" \
+            "pytest-homeassistant-custom-component>=0.13" \
+            "aiousbwatcher>=1.0" \
+            "serialx>=1.0" \
+            "aioesphomeapi>=45"
 
       - name: Run tests with coverage
-        run: pytest --cov=custom_components.minewtech_d15n --cov-report=term-missing --cov-fail-under=90
+        run: |
+          pytest \
+            --cov=custom_components.minewtech_d15n \
+            --cov-report=term-missing \
+            --cov-fail-under=90
