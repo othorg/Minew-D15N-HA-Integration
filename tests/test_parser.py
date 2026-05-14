@@ -68,9 +68,7 @@ class TestEddystoneFrameDecoders:
             ("ffe8", parse_eddystone_uid),  # wrong frame type
         ],
     )
-    def test_decoders_return_none_on_invalid_input(
-        self, payload_hex: str, decoder: Any
-    ) -> None:
+    def test_decoders_return_none_on_invalid_input(self, payload_hex: str, decoder: Any) -> None:
         assert decoder(bytes.fromhex(payload_hex)) is None
 
     def test_url_decoder_rejects_unknown_scheme(self) -> None:
@@ -153,9 +151,7 @@ class TestIsD15N:
 
 
 class TestDeriveStableId:
-    def test_tier2_eddystone_uid_wins_when_present(
-        self, uid_fixture: dict[str, Any]
-    ) -> None:
+    def test_tier2_eddystone_uid_wins_when_present(self, uid_fixture: dict[str, Any]) -> None:
         info = make_service_info(service_data_hex=uid_fixture["service_data_hex"])
         result = derive_stable_id(info)
         assert result is not None
@@ -225,9 +221,7 @@ class TestParse:
         assert adv.trigger_counter is None
         assert adv.address_type == AddressType.RANDOM_STATIC
 
-    def test_parses_tlm_frame_with_battery_percent(
-        self, tlm_fixture: dict[str, Any]
-    ) -> None:
+    def test_parses_tlm_frame_with_battery_percent(self, tlm_fixture: dict[str, Any]) -> None:
         info = make_service_info(service_data_hex=tlm_fixture["service_data_hex"])
         adv = parse(info)
         assert adv is not None
@@ -256,9 +250,7 @@ class TestParse:
 
 
 class TestIBeacon:
-    def test_parse_ibeacon_against_fixture(
-        self, ibeacon_fixture: dict[str, Any]
-    ) -> None:
+    def test_parse_ibeacon_against_fixture(self, ibeacon_fixture: dict[str, Any]) -> None:
         payload = bytes.fromhex(ibeacon_fixture["manufacturer_data_hex"])
         result = parse_ibeacon(payload)
         assert result is not None
@@ -283,9 +275,7 @@ class TestIBeacon:
 
     def test_parse_ibeacon_decodes_non_zero_major_minor(self) -> None:
         # Same UUID as the D15N but Major=0x0102, Minor=0x0304, Power=-50 (0xCE).
-        payload = bytes.fromhex(
-            "0215" "e2c56db5dffb48d2b060d0f5a71096e0" "0102" "0304" "ce"
-        )
+        payload = bytes.fromhex("0215e2c56db5dffb48d2b060d0f5a71096e001020304ce")
         result = parse_ibeacon(payload)
         assert result is not None
         assert result.major == 0x0102
@@ -300,9 +290,7 @@ class TestIBeacon:
         info = make_service_info(
             service_data_hex=uid_fixture["service_data_hex"],
             manufacturer_data={
-                APPLE_MANUFACTURER_ID: bytes.fromhex(
-                    ibeacon_fixture["manufacturer_data_hex"]
-                )
+                APPLE_MANUFACTURER_ID: bytes.fromhex(ibeacon_fixture["manufacturer_data_hex"])
             },
         )
         result = derive_stable_id(info)
@@ -321,9 +309,7 @@ class TestIBeacon:
         info = make_service_info(
             service_data_hex=tlm_fixture["service_data_hex"],
             manufacturer_data={
-                APPLE_MANUFACTURER_ID: bytes.fromhex(
-                    ibeacon_fixture["manufacturer_data_hex"]
-                )
+                APPLE_MANUFACTURER_ID: bytes.fromhex(ibeacon_fixture["manufacturer_data_hex"])
             },
         )
         adv = parse(info)

@@ -53,7 +53,6 @@ class D15NDeviceTracker(D15NEntity, ScannerEntity):
 
     _attr_source_type = SourceType.BLUETOOTH_LE
 
-
     def __init__(
         self,
         coordinator: D15NPassiveCoordinator,
@@ -87,9 +86,7 @@ class D15NDeviceTracker(D15NEntity, ScannerEntity):
         adv = self._coordinator.last_advertisement
         if adv is None:
             return False
-        max_age: float = self._entry.options.get(
-            CONF_MAX_AGE_SECONDS, DEFAULT_MAX_AGE_SECONDS
-        )
+        max_age: float = self._entry.options.get(CONF_MAX_AGE_SECONDS, DEFAULT_MAX_AGE_SECONDS)
         return (time.monotonic() - adv.timestamp) < max_age
 
 

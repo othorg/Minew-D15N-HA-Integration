@@ -40,9 +40,7 @@ def _make_service_info_with_address(
 class TestBluetoothDiscoveryFlow:
     @pytest.mark.asyncio
     async def test_happy_path(self, hass: Any, uid_fixture: dict[str, Any]) -> None:
-        info = _make_service_info_with_address(
-            "c3:00:00:4b:06:53", uid_fixture["service_data_hex"]
-        )
+        info = _make_service_info_with_address("c3:00:00:4b:06:53", uid_fixture["service_data_hex"])
 
         result = await hass.config_entries.flow.async_init(
             DOMAIN, context={"source": SOURCE_BLUETOOTH}, data=info
@@ -50,9 +48,7 @@ class TestBluetoothDiscoveryFlow:
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == "bluetooth_confirm"
 
-        result = await hass.config_entries.flow.async_configure(
-            result["flow_id"], user_input={}
-        )
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], user_input={})
         assert result["type"] == FlowResultType.CREATE_ENTRY
         ns = uid_fixture["expected"]["namespace_hex"]
         inst = uid_fixture["expected"]["instance_hex"]
@@ -73,9 +69,7 @@ class TestBluetoothDiscoveryFlow:
             data={CONF_STABLE_ID: stable_id, CONF_ADDRESS: "c3:00:00:4b:06:53"},
         ).add_to_hass(hass)
 
-        info = _make_service_info_with_address(
-            "c3:00:00:4b:06:53", uid_fixture["service_data_hex"]
-        )
+        info = _make_service_info_with_address("c3:00:00:4b:06:53", uid_fixture["service_data_hex"])
         result = await hass.config_entries.flow.async_init(
             DOMAIN, context={"source": SOURCE_BLUETOOTH}, data=info
         )
@@ -110,9 +104,7 @@ class TestBluetoothDiscoveryFlow:
 
 class TestUserFlow:
     @pytest.mark.asyncio
-    async def test_lists_discovered_beacons(
-        self, hass: Any, uid_fixture: dict[str, Any]
-    ) -> None:
+    async def test_lists_discovered_beacons(self, hass: Any, uid_fixture: dict[str, Any]) -> None:
         info_a = _make_service_info_with_address(
             "c3:00:00:4b:06:53", uid_fixture["service_data_hex"]
         )
@@ -135,12 +127,8 @@ class TestUserFlow:
             assert "c3:00:00:4b:06:54" in schema_keys
 
     @pytest.mark.asyncio
-    async def test_user_path_creates_entry(
-        self, hass: Any, uid_fixture: dict[str, Any]
-    ) -> None:
-        info = _make_service_info_with_address(
-            "c3:00:00:4b:06:53", uid_fixture["service_data_hex"]
-        )
+    async def test_user_path_creates_entry(self, hass: Any, uid_fixture: dict[str, Any]) -> None:
+        info = _make_service_info_with_address("c3:00:00:4b:06:53", uid_fixture["service_data_hex"])
         with patch(
             "custom_components.minewtech_d15n.config_flow.async_discovered_service_info",
             return_value=[info],
@@ -179,9 +167,7 @@ class TestUserFlow:
             data={CONF_STABLE_ID: stable_id, CONF_ADDRESS: "c3:00:00:4b:06:53"},
         ).add_to_hass(hass)
 
-        info = _make_service_info_with_address(
-            "c3:00:00:4b:06:53", uid_fixture["service_data_hex"]
-        )
+        info = _make_service_info_with_address("c3:00:00:4b:06:53", uid_fixture["service_data_hex"])
         with patch(
             "custom_components.minewtech_d15n.config_flow.async_discovered_service_info",
             return_value=[info],
@@ -222,9 +208,7 @@ class TestLabelFallback:
             # The form was reached without the user explicitly asking for
             # a label — confirm the description still includes the
             # chosen beacon's address so the user knows what they are naming.
-            assert result["description_placeholders"]["address"] == (
-                "12:34:56:78:9a:bc"
-            )
+            assert result["description_placeholders"]["address"] == ("12:34:56:78:9a:bc")
 
             result = await hass.config_entries.flow.async_configure(
                 result["flow_id"], user_input={"label": "Keychain Mama"}
@@ -293,12 +277,8 @@ class TestDiscoverableBeaconsPriority:
         # picker must keep the UID one so the user does not get
         # forwarded to async_step_label unnecessarily.
         addr = "c3:00:00:4b:06:53"
-        tlm_info = make_service_info(
-            service_data_hex=tlm_fixture["service_data_hex"], address=addr
-        )
-        uid_info = make_service_info(
-            service_data_hex=uid_fixture["service_data_hex"], address=addr
-        )
+        tlm_info = make_service_info(service_data_hex=tlm_fixture["service_data_hex"], address=addr)
+        uid_info = make_service_info(service_data_hex=uid_fixture["service_data_hex"], address=addr)
 
         with patch(
             "custom_components.minewtech_d15n.config_flow.async_discovered_service_info",

@@ -288,8 +288,7 @@ def parse_ibeacon(payload: bytes) -> IBeacon | None:
     tx_power = int.from_bytes(payload[22:23], byteorder="big", signed=True)
     uuid_hex = uuid_bytes.hex()
     canonical_uuid = (
-        f"{uuid_hex[0:8]}-{uuid_hex[8:12]}-{uuid_hex[12:16]}-"
-        f"{uuid_hex[16:20]}-{uuid_hex[20:32]}"
+        f"{uuid_hex[0:8]}-{uuid_hex[8:12]}-{uuid_hex[12:16]}-{uuid_hex[16:20]}-{uuid_hex[20:32]}"
     )
     return IBeacon(
         uuid=canonical_uuid,

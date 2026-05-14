@@ -169,9 +169,7 @@ class Sink:
     def close(self) -> None:
         self._fh.close()
         elapsed = time.monotonic() - self._start
-        print(
-            f"[sniff] done — {self._count} frames in {elapsed:.1f}s → {self._path}"
-        )
+        print(f"[sniff] done — {self._count} frames in {elapsed:.1f}s → {self._path}")
 
 
 async def run_capture(

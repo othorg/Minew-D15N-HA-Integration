@@ -154,9 +154,7 @@ class MinewtechD15NConfigFlow(ConfigFlow, domain=DOMAIN):
             },
         )
 
-    async def async_step_user(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Manual entry: pick a discovered beacon from a dropdown.
 
         If no D15N beacons are currently visible, the flow aborts with the
@@ -193,9 +191,7 @@ class MinewtechD15NConfigFlow(ConfigFlow, domain=DOMAIN):
             data_schema=self._user_schema(discovered),
         )
 
-    async def async_step_label(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_label(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Free-text fallback used when no stable-id can be derived.
 
         Only reachable as a side branch from :meth:`async_step_user`, which
@@ -283,8 +279,7 @@ class MinewtechD15NConfigFlow(ConfigFlow, domain=DOMAIN):
         are dropped from the dropdown so the user cannot re-add them.
         """
         configured_ids = {
-            entry.unique_id
-            for entry in self._async_current_entries(include_ignore=False)
+            entry.unique_id for entry in self._async_current_entries(include_ignore=False)
         }
         candidates: dict[str, BluetoothServiceInfoBleak] = {}
         for info in async_discovered_service_info(self.hass):
@@ -330,15 +325,11 @@ class MinewtechD15NConfigFlow(ConfigFlow, domain=DOMAIN):
 class MinewtechD15NOptionsFlow(OptionsFlow):
     """Lets the user tune the ``device_tracker`` timeout after setup."""
 
-    async def async_step_init(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
 
-        current = self.config_entry.options.get(
-            CONF_MAX_AGE_SECONDS, DEFAULT_MAX_AGE_SECONDS
-        )
+        current = self.config_entry.options.get(CONF_MAX_AGE_SECONDS, DEFAULT_MAX_AGE_SECONDS)
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema(

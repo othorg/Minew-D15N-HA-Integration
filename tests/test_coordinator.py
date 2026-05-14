@@ -79,9 +79,7 @@ class TestProcessUpdate:
         For these unit tests we bypass it: create a bare object and
         manually populate the attributes our override touches.
         """
-        coord: D15NPassiveCoordinator = D15NPassiveCoordinator.__new__(
-            D15NPassiveCoordinator
-        )
+        coord: D15NPassiveCoordinator = D15NPassiveCoordinator.__new__(D15NPassiveCoordinator)
         coord._last_advertisement = None
         coord._last_battery_pct = None
         coord._processors = []
@@ -114,9 +112,7 @@ class TestProcessUpdate:
         processor = MagicMock()
         coord._processors.append(processor)
         coord._process_update(fake_advertisement, was_available=True)
-        processor.async_handle_update.assert_called_once_with(
-            fake_advertisement, True
-        )
+        processor.async_handle_update.assert_called_once_with(fake_advertisement, True)
 
     def test_initial_last_advertisement_is_none(self) -> None:
         coord = self._make_bare_instance()

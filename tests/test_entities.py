@@ -60,9 +60,7 @@ def _make_advertisement(
 
 def _make_bare_coordinator() -> D15NPassiveCoordinator:
     """Build a coordinator without invoking the HA base __init__."""
-    coord: D15NPassiveCoordinator = D15NPassiveCoordinator.__new__(
-        D15NPassiveCoordinator
-    )
+    coord: D15NPassiveCoordinator = D15NPassiveCoordinator.__new__(D15NPassiveCoordinator)
     coord._last_advertisement = None
     coord._last_battery_pct = None
     coord._update_listeners = []
@@ -190,18 +188,14 @@ class TestDeviceTrackerIsConnected:
     def test_connected_when_adv_within_max_age(self) -> None:
         coord = _make_bare_coordinator()
         entry = _make_config_entry(**{CONF_MAX_AGE_SECONDS: 300})
-        coord._last_advertisement = _make_advertisement(
-            timestamp=time.monotonic() - 10
-        )
+        coord._last_advertisement = _make_advertisement(timestamp=time.monotonic() - 10)
         tracker = D15NDeviceTracker(coord, STABLE_ID, entry)
         assert tracker.is_connected is True
 
     def test_not_connected_when_adv_older_than_max_age(self) -> None:
         coord = _make_bare_coordinator()
         entry = _make_config_entry(**{CONF_MAX_AGE_SECONDS: 30})
-        coord._last_advertisement = _make_advertisement(
-            timestamp=time.monotonic() - 60
-        )
+        coord._last_advertisement = _make_advertisement(timestamp=time.monotonic() - 60)
         tracker = D15NDeviceTracker(coord, STABLE_ID, entry)
         assert tracker.is_connected is False
 
@@ -209,9 +203,7 @@ class TestDeviceTrackerIsConnected:
         """Changing entry.options reflects immediately without reload."""
         coord = _make_bare_coordinator()
         entry = _make_config_entry(**{CONF_MAX_AGE_SECONDS: 300})
-        coord._last_advertisement = _make_advertisement(
-            timestamp=time.monotonic() - 120
-        )
+        coord._last_advertisement = _make_advertisement(timestamp=time.monotonic() - 120)
         tracker = D15NDeviceTracker(coord, STABLE_ID, entry)
         assert tracker.is_connected is True  # 120 < 300
 
@@ -247,16 +239,16 @@ class TestEntitySetup:
         await hass.async_block_till_done()
 
         registry = er.async_get(hass)
-        our_entities = [e for e in registry.entities.values() if e.config_entry_id == entry.entry_id]
+        our_entities = [
+            e for e in registry.entities.values() if e.config_entry_id == entry.entry_id
+        ]
         sensor_entities = [e for e in our_entities if e.domain == "sensor"]
         tracker_entities = [e for e in our_entities if e.domain == "device_tracker"]
         assert len(sensor_entities) == 3, f"expected 3 sensors, got {sensor_entities}"
         assert len(tracker_entities) == 1, f"expected 1 tracker, got {tracker_entities}"
 
     @pytest.mark.asyncio
-    async def test_sensor_state_updates_on_coordinator_listener(
-        self, hass: Any
-    ) -> None:
+    async def test_sensor_state_updates_on_coordinator_listener(self, hass: Any) -> None:
         entry = MockConfigEntry(
             domain=DOMAIN,
             unique_id=STABLE_ID,
@@ -308,7 +300,9 @@ class TestEntitySetup:
 
         await hass.async_block_till_done()
         registry = er.async_get(hass)
-        our_entities_before = [e for e in registry.entities.values() if e.config_entry_id == entry.entry_id]
+        our_entities_before = [
+            e for e in registry.entities.values() if e.config_entry_id == entry.entry_id
+        ]
         assert len(our_entities_before) >= 4
 
         assert await hass.config_entries.async_unload(entry.entry_id)

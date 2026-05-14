@@ -35,9 +35,7 @@ if TYPE_CHECKING:
 _LOGGER = logging.getLogger(__name__)
 
 
-class D15NPassiveCoordinator(
-    PassiveBluetoothProcessorCoordinator[D15NAdvertisement | None]
-):
+class D15NPassiveCoordinator(PassiveBluetoothProcessorCoordinator[D15NAdvertisement | None]):
     """Coordinator that dispatches parsed D15N advertisements to entities.
 
     The base class fans the parser output out to every registered
