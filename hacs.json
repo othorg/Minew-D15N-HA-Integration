@@ -1,0 +1,6 @@
+{
+  "name": "Minewtech D15N Beacon",
+  "render_readme": true,
+  "homeassistant": "2025.1.0",
+  "country": ["DE", "AT", "CH"]
+}
