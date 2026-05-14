@@ -9,8 +9,6 @@ Provides three read-only sensors per beacon:
 
 from __future__ import annotations
 
-import time
-from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
 from homeassistant.components.sensor import (
@@ -24,6 +22,8 @@ from .const import CONF_STABLE_ID
 from .entity_base import D15NEntity
 
 if TYPE_CHECKING:
+    from datetime import datetime
+
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -101,14 +101,7 @@ class D15NLastSeenSensor(D15NEntity, SensorEntity):
 
     @property
     def native_value(self) -> datetime | None:
-        adv = self._coordinator.last_advertisement
-        if adv is None:
-            return None
-        # adv.timestamp is service_info.time — monotonic uptime, not
-        # Unix epoch. Convert to real-world UTC by subtracting the
-        # elapsed seconds from now.
-        elapsed = time.monotonic() - adv.timestamp
-        return datetime.now(tz=UTC) - timedelta(seconds=elapsed)
+        return self._coordinator.last_seen_utc
 
 
 __all__ = ["D15NBatterySensor", "D15NLastSeenSensor", "D15NRssiSensor", "async_setup_entry"]

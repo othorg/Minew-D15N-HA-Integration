@@ -69,6 +69,7 @@ class D15NDeviceTracker(D15NEntity, ScannerEntity):
     """
 
     _attr_source_type = SourceType.BLUETOOTH_LE
+    _register_default_coordinator_listener = False
 
     def __init__(
         self,
@@ -79,6 +80,7 @@ class D15NDeviceTracker(D15NEntity, ScannerEntity):
         super().__init__(coordinator, stable_id)
         self._entry = entry
         self._attr_unique_id = f"{stable_id}_device_tracker"
+        self._last_reported_connected: bool | None = None
         # Do NOT set _attr_mac_address: ScannerEntity registers the MAC in
         # HA's network-MAC device registry and conflicts with any existing
         # tracker for the same beacon (e.g. a legacy Flair / BTHome entry).
@@ -99,6 +101,8 @@ class D15NDeviceTracker(D15NEntity, ScannerEntity):
 
     async def async_added_to_hass(self) -> None:
         await super().async_added_to_hass()
+        # Register a custom coordinator listener so we can skip no-op writes.
+        self.async_on_remove(self._coordinator.async_add_listener(self._handle_coordinator_update))
         # The coordinator listener only fires on incoming ADVs, so when the
         # beacon goes silent there is nothing to trigger a state write.
         # Tick on a fixed interval to re-evaluate the staleness threshold.
@@ -110,6 +114,19 @@ class D15NDeviceTracker(D15NEntity, ScannerEntity):
 
     @callback
     def _async_refresh_presence(self, _now: datetime) -> None:
+        self._async_write_presence_if_changed()
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Write a state update only when presence actually changed."""
+        self._async_write_presence_if_changed()
+
+    @callback
+    def _async_write_presence_if_changed(self) -> None:
+        connected = self.is_connected
+        if connected == self._last_reported_connected:
+            return
+        self._last_reported_connected = connected
         self.async_write_ha_state()
 
     @property

@@ -16,6 +16,7 @@ always ``None``.
 from __future__ import annotations
 
 import logging
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from habluetooth import BluetoothScanningMode
@@ -55,6 +56,7 @@ class D15NPassiveCoordinator(PassiveBluetoothProcessorCoordinator[D15NAdvertisem
         )
         self._last_advertisement: D15NAdvertisement | None = None
         self._last_battery_pct: int | None = None
+        self._last_seen_utc: datetime | None = None
         self._update_listeners: list[Callable[[], None]] = []
 
     @property
@@ -115,6 +117,11 @@ class D15NPassiveCoordinator(PassiveBluetoothProcessorCoordinator[D15NAdvertisem
         """
         return self._last_advertisement
 
+    @property
+    def last_seen_utc(self) -> datetime | None:
+        """Return the UTC wall-clock time of the most recent advertisement."""
+        return self._last_seen_utc
+
     def _process_update(
         self,
         update: D15NAdvertisement | None,
@@ -122,8 +129,12 @@ class D15NPassiveCoordinator(PassiveBluetoothProcessorCoordinator[D15NAdvertisem
     ) -> None:
         if update is not None:
             self._last_advertisement = update
+            self._last_seen_utc = datetime.now(tz=UTC)
             if update.battery_pct is not None:
                 self._last_battery_pct = update.battery_pct
         super()._process_update(update, was_available)
         for listener in list(self._update_listeners):
-            listener()
+            try:
+                listener()
+            except Exception:  # pragma: no cover - defensive against bad listeners
+                _LOGGER.exception("D15N update listener failed")

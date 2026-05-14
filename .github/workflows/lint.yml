@@ -7,8 +7,31 @@ on:
     branches: [main]
 
 jobs:
-  lint:
-    name: ruff + mypy
+  lint_py313:
+    name: ruff (py3.13)
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install lint tools
+        run: |
+          pip install --upgrade pip
+          pip install "ruff>=0.5"
+
+      - name: ruff check
+        run: ruff check .
+
+      - name: ruff format check
+        run: ruff format --check .
+
+  lint_py314:
+    name: ruff + mypy (py3.14)
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true

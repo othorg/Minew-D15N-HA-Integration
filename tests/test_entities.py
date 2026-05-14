@@ -65,6 +65,7 @@ def _make_bare_coordinator() -> D15NPassiveCoordinator:
     coord: D15NPassiveCoordinator = D15NPassiveCoordinator.__new__(D15NPassiveCoordinator)
     coord._last_advertisement = None
     coord._last_battery_pct = None
+    coord._last_seen_utc = None
     coord._update_listeners = []
     coord._processors = []
     coord.last_update_success = True
@@ -166,17 +167,24 @@ class TestSensorValues:
 
     def test_last_seen_returns_utc_datetime_near_now(self) -> None:
         coord = _make_bare_coordinator()
-        coord._last_advertisement = _make_advertisement(
-            timestamp=time.monotonic()  # just-received ADV
-        )
+        coord._process_update(_make_advertisement(timestamp=time.monotonic()))
         sensor = D15NLastSeenSensor(coord, STABLE_ID)
         result = sensor.native_value
         assert result is not None
         assert result.tzinfo is UTC
-        # Must be within 2 seconds of now (not ~1970 from a raw monotonic
-        # timestamp passed to datetime.fromtimestamp).
+        # Cached wall-clock timestamp must be near now when the ADV arrived.
         now = datetime.now(tz=UTC)
         assert abs((result - now).total_seconds()) < 2
+
+    def test_last_seen_is_stable_between_reads_until_next_update(self) -> None:
+        coord = _make_bare_coordinator()
+        coord._process_update(_make_advertisement(timestamp=time.monotonic()))
+        sensor = D15NLastSeenSensor(coord, STABLE_ID)
+        first = sensor.native_value
+        time.sleep(0.02)
+        second = sensor.native_value
+        assert first is not None
+        assert second == first
 
 
 # ---------------------------------------------------------------------------
@@ -249,6 +257,16 @@ class TestDeviceTrackerIsConnected:
         entry.options = {CONF_MAX_AGE_SECONDS: 300, CONF_MIN_RSSI: -75}
         assert tracker.is_connected is False
 
+    def test_refresh_tick_skips_noop_state_write(self) -> None:
+        coord = _make_bare_coordinator()
+        entry = _make_config_entry(**{CONF_MIN_RSSI: -90, CONF_MAX_AGE_SECONDS: 300})
+        coord._last_advertisement = _make_advertisement(timestamp=time.monotonic() - 2, rssi=-70)
+        tracker = D15NDeviceTracker(coord, STABLE_ID, entry)
+        tracker.async_write_ha_state = MagicMock()
+        tracker._handle_coordinator_update()
+        tracker._async_refresh_presence(datetime.now(tz=UTC))
+        assert tracker.async_write_ha_state.call_count == 1
+
 
 # ---------------------------------------------------------------------------
 # Integration: setup + entity states via hass fixture
@@ -308,13 +326,18 @@ class TestEntitySetup:
         fake_coord._process_update(_make_advertisement(battery_pct=90, rssi=-50))
         await hass.async_block_till_done()
 
-        battery_state = hass.states.get(f"sensor.d15n_{MAC.replace(':', '')}_battery")
-        if battery_state is None:
-            # Entity ID may vary; find by unique_id suffix
-            for eid in hass.states.async_entity_ids("sensor"):
-                if "battery" in eid:
-                    battery_state = hass.states.get(eid)
-                    break
+        registry = er.async_get(hass)
+        battery_entry = next(
+            (
+                entity
+                for entity in registry.entities.values()
+                if entity.config_entry_id == entry.entry_id
+                and entity.unique_id.endswith("_battery")
+            ),
+            None,
+        )
+        assert battery_entry is not None
+        battery_state = hass.states.get(battery_entry.entity_id)
         assert battery_state is not None
         assert battery_state.state == "90"
 

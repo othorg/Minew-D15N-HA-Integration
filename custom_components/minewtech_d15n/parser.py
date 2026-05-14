@@ -213,6 +213,11 @@ def _classify_address(address: str) -> AddressType:
     return AddressType.UNKNOWN
 
 
+def classify_address(address: str) -> AddressType:
+    """Public wrapper around address-type classification logic."""
+    return _classify_address(address)
+
+
 def _decode_eddystone_url_body(body: bytes) -> str:
     """Decode the Eddystone-URL body bytes into a printable URL.
 
@@ -432,7 +437,11 @@ def parse_for_known_address(service_info: BluetoothServiceInfoBleak) -> D15NAdve
         if decoded is not None:
             battery_pct = battery_percentage_from_mv(decoded.battery_mv)
 
-    raw_bytes = b"".join(service_info.service_data.values())
+    # Build deterministic raw bytes independent of dict insertion order.
+    raw_bytes = b"".join(
+        payload
+        for _uuid, payload in sorted(service_info.service_data.items(), key=lambda item: item[0])
+    )
 
     return D15NAdvertisement(
         stable_id=derive_stable_id(service_info),

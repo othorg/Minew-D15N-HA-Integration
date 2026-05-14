@@ -88,6 +88,7 @@ class TestProcessUpdate:
         coord: D15NPassiveCoordinator = D15NPassiveCoordinator.__new__(D15NPassiveCoordinator)
         coord._last_advertisement = None
         coord._last_battery_pct = None
+        coord._last_seen_utc = None
         coord._processors = []
         coord._update_listeners = []
         coord.last_update_success = True
@@ -123,6 +124,23 @@ class TestProcessUpdate:
     def test_initial_last_advertisement_is_none(self) -> None:
         coord = self._make_bare_instance()
         assert coord.last_advertisement is None
+
+    def test_listener_exception_does_not_block_other_listeners(
+        self, fake_advertisement: D15NAdvertisement
+    ) -> None:
+        coord = self._make_bare_instance()
+        called: list[int] = []
+
+        def bad_listener() -> None:
+            raise RuntimeError("boom")
+
+        def good_listener() -> None:
+            called.append(1)
+
+        coord.async_add_listener(bad_listener)
+        coord.async_add_listener(good_listener)
+        coord._process_update(fake_advertisement, was_available=True)
+        assert called == [1]
 
 
 class TestEntrySetupAndUnload:

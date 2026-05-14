@@ -42,6 +42,7 @@ from homeassistant.config_entries import (
 )
 
 from .const import (
+    APPLE_MANUFACTURER_ID,
     CONF_ADDRESS,
     CONF_ADDRESS_TYPE,
     CONF_MAX_AGE_SECONDS,
@@ -50,13 +51,15 @@ from .const import (
     DEFAULT_MAX_AGE_SECONDS,
     DEFAULT_MIN_RSSI,
     DOMAIN,
+    EDDYSTONE_FRAME_TYPE_UID,
     MAX_MAX_AGE_SECONDS,
     MAX_MIN_RSSI,
     MIN_MAX_AGE_SECONDS,
     MIN_MIN_RSSI,
+    SERVICE_UUID_EDDYSTONE,
 )
 from .parser import (
-    AddressType,
+    classify_address,
     derive_manual_stable_id,
     derive_stable_id,
     is_d15n,
@@ -90,14 +93,14 @@ def _stable_id_tier(info: BluetoothServiceInfoBleak) -> int:
     several frames for the same beacon (e.g. one TLM and one UID/iBeacon).
     Higher is better; ``0`` means the cascade falls through entirely.
     """
-    stable_id = derive_stable_id(info)
-    if stable_id is None:
-        return 0
-    if stable_id.startswith("ibeacon:"):
+    if APPLE_MANUFACTURER_ID in info.manufacturer_data:
         return 3
-    if stable_id.startswith("eddystone:"):
+    eddystone = info.service_data.get(SERVICE_UUID_EDDYSTONE)
+    if eddystone and eddystone[:1] == bytes([EDDYSTONE_FRAME_TYPE_UID]):
         return 2
-    return 1  # ble:<addr> or cb:<uuid>
+    if derive_stable_id(info) is not None:
+        return 1
+    return 0
 
 
 class MinewtechD15NConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -254,7 +257,7 @@ class MinewtechD15NConfigFlow(ConfigFlow, domain=DOMAIN):
                 data={
                     CONF_STABLE_ID: stable_id,
                     CONF_ADDRESS: _normalise_address(info.address),
-                    CONF_ADDRESS_TYPE: AddressType.UNKNOWN.value,
+                    CONF_ADDRESS_TYPE: classify_address(info.address).value,
                 },
                 options={
                     CONF_MAX_AGE_SECONDS: DEFAULT_MAX_AGE_SECONDS,
@@ -283,7 +286,7 @@ class MinewtechD15NConfigFlow(ConfigFlow, domain=DOMAIN):
             data={
                 CONF_STABLE_ID: stable_id,
                 CONF_ADDRESS: address,
-                CONF_ADDRESS_TYPE: AddressType.UNKNOWN.value,
+                CONF_ADDRESS_TYPE: classify_address(address).value,
             },
             options={
                 CONF_MAX_AGE_SECONDS: DEFAULT_MAX_AGE_SECONDS,
@@ -355,7 +358,7 @@ class MinewtechD15NConfigFlow(ConfigFlow, domain=DOMAIN):
         )
 
     def _has_unique_id(self, stable_id: str) -> bool:
-        for entry in self._async_current_entries(include_ignore=False):
+        for entry in self._async_current_entries(include_ignore=True):
             if entry.unique_id == stable_id:
                 return True
         return False

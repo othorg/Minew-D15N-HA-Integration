@@ -31,6 +31,7 @@ class D15NEntity(Entity):
 
     _attr_has_entity_name = True
     _attr_should_poll = False
+    _register_default_coordinator_listener = True
 
     def __init__(
         self,
@@ -50,7 +51,10 @@ class D15NEntity(Entity):
         return self._coordinator.available
 
     async def async_added_to_hass(self) -> None:
-        self.async_on_remove(self._coordinator.async_add_listener(self._handle_coordinator_update))
+        if self._register_default_coordinator_listener:
+            self.async_on_remove(
+                self._coordinator.async_add_listener(self._handle_coordinator_update)
+            )
 
     @callback
     def _handle_coordinator_update(self) -> None:

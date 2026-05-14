@@ -7,6 +7,45 @@ on:
     branches: [main]
 
 jobs:
+  compatibility_ha_minimum:
+    name: import check (HA 2025.1, py3.13)
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install Home Assistant minimum + Linux-only deps
+        run: |
+          pip install --upgrade pip
+          pip install \
+            "homeassistant==2025.1.4" \
+            "aiousbwatcher>=1.0" \
+            "serialx>=1.0" \
+            "aioesphomeapi>=45"
+
+      - name: Import integration modules
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import importlib
+          modules = [
+              "custom_components.minewtech_d15n",
+              "custom_components.minewtech_d15n.const",
+              "custom_components.minewtech_d15n.parser",
+              "custom_components.minewtech_d15n.coordinator",
+              "custom_components.minewtech_d15n.config_flow",
+              "custom_components.minewtech_d15n.sensor",
+              "custom_components.minewtech_d15n.device_tracker",
+          ]
+          for module in modules:
+              importlib.import_module(module)
+          print("HA minimum compatibility import check passed")
+          PY
+
   test:
     name: pytest
     runs-on: ubuntu-latest

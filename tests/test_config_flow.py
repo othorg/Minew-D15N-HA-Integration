@@ -16,6 +16,7 @@ import pytest
 from custom_components.minewtech_d15n.config_flow import MinewtechD15NConfigFlow
 from custom_components.minewtech_d15n.const import (
     CONF_ADDRESS,
+    CONF_ADDRESS_TYPE,
     CONF_MAX_AGE_SECONDS,
     CONF_MIN_RSSI,
     CONF_STABLE_ID,
@@ -56,6 +57,7 @@ class TestBluetoothDiscoveryFlow:
         inst = uid_fixture["expected"]["instance_hex"]
         assert result["data"][CONF_STABLE_ID] == f"eddystone:{ns}:{inst}"
         assert result["data"][CONF_ADDRESS] == "c3:00:00:4b:06:53"
+        assert result["data"][CONF_ADDRESS_TYPE] == "random_static"
         assert result["options"][CONF_MAX_AGE_SECONDS] == DEFAULT_MAX_AGE_SECONDS
         assert result["options"][CONF_MIN_RSSI] == DEFAULT_MIN_RSSI
 
@@ -235,6 +237,7 @@ class TestLabelFallback:
         assert result["type"] == FlowResultType.CREATE_ENTRY
         assert result["data"][CONF_STABLE_ID].startswith("manual:")
         assert result["data"][CONF_ADDRESS] == "12:34:56:78:9a:bc"
+        assert result["data"][CONF_ADDRESS_TYPE] == "unknown"
         assert result["options"][CONF_MAX_AGE_SECONDS] == DEFAULT_MAX_AGE_SECONDS
         assert result["options"][CONF_MIN_RSSI] == DEFAULT_MIN_RSSI
 

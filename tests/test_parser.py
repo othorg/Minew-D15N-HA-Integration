@@ -16,6 +16,7 @@ from custom_components.minewtech_d15n.parser import (
     TriggerEvent,
     _classify_address,
     battery_percentage_from_mv,
+    classify_address,
     derive_manual_stable_id,
     derive_stable_id,
     is_d15n,
@@ -136,6 +137,7 @@ class TestAddressClassification:
     )
     def test_classification(self, address: str, expected: AddressType) -> None:
         assert _classify_address(address) == expected
+        assert classify_address(address) == expected
 
 
 class TestIsD15N:
@@ -250,6 +252,27 @@ class TestParse:
         assert adv is not None
         assert adv.rssi == -72
         assert adv.timestamp == 123.456
+
+    def test_raw_bytes_are_deterministic_independent_of_dict_order(self) -> None:
+        # Same key/value pairs with different insertion order must produce
+        # identical raw bytes to keep tests and diagnostics stable.
+        info_a = make_service_info(service_data_hex="00e800112233445566778899abcde76b01f4")
+        info_a.service_data = {
+            "0000feaa-0000-1000-8000-00805f9b34fb": bytes.fromhex(
+                "00e800112233445566778899abcde76b01f4"
+            ),
+            "0000fff0-0000-1000-8000-00805f9b34fb": b"\x01\x02",
+        }
+        info_b = make_service_info(service_data_hex="00e800112233445566778899abcde76b01f4")
+        info_b.service_data = {
+            "0000fff0-0000-1000-8000-00805f9b34fb": b"\x01\x02",
+            "0000feaa-0000-1000-8000-00805f9b34fb": bytes.fromhex(
+                "00e800112233445566778899abcde76b01f4"
+            ),
+        }
+        adv_a = parse_for_known_address(info_a)
+        adv_b = parse_for_known_address(info_b)
+        assert adv_a.raw == adv_b.raw
 
     def test_trigger_event_enum_values(self) -> None:
         # A2 fallback: trigger fields stay None; the enum is defined for v2.
