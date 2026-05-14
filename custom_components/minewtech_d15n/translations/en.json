@@ -15,7 +15,7 @@
             },
             "label": {
                 "title": "Manual setup",
-                "description": "No stable identifier can be derived from this beacon's advertisements. Give it a memorable name to keep tracking it across MAC rotations.\n\nNote: this label becomes the device identifier. If the beacon is factory-reset, a new entry has to be created.",
+                "description": "No stable identifier (iBeacon UUID or Eddystone-UID) was found in the advertisements of `{address}`.\n\nGive it a memorable name to track it across MAC rotations. If the beacon is factory-reset, you will need to remove this entry and add a new one.",
                 "data": {
                     "label": "Name for this beacon"
                 }

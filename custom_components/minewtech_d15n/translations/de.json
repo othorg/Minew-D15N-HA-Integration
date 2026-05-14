@@ -15,7 +15,7 @@
             },
             "label": {
                 "title": "Manuelle Einrichtung",
-                "description": "Aus den Advertisements dieses Beacons lässt sich keine stabile Kennung ableiten. Vergib einen einprägsamen Namen, um ihn auch über MAC-Rotationen hinweg zu verfolgen.\n\nHinweis: Das Label dient als Geräte-Identifikator. Wenn der Beacon zurückgesetzt wird, muss ein neuer Eintrag angelegt werden.",
+                "description": "In den Advertisements von `{address}` konnte keine stabile Kennung (iBeacon-UUID oder Eddystone-UID) gefunden werden.\n\nVergib einen einprägsamen Namen, um ihn auch über MAC-Rotationen hinweg zu verfolgen. Wenn der Beacon zurückgesetzt wird, musst du diesen Eintrag löschen und einen neuen anlegen.",
                 "data": {
                     "label": "Name für diesen Beacon"
                 }

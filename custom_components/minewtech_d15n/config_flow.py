@@ -67,6 +67,24 @@ def _entry_title(stable_id: str, address: str) -> str:
     return f"Minewtech D15N ({address})"
 
 
+def _stable_id_tier(info: BluetoothServiceInfoBleak) -> int:
+    """Rank an advertisement by the stable-id tier it can produce.
+
+    Used by :meth:`MinewtechD15NConfigFlow._async_discoverable_beacons`
+    to pick the most useful snapshot when HA's discovery cache holds
+    several frames for the same beacon (e.g. one TLM and one UID/iBeacon).
+    Higher is better; ``0`` means the cascade falls through entirely.
+    """
+    stable_id = derive_stable_id(info)
+    if stable_id is None:
+        return 0
+    if stable_id.startswith("ibeacon:"):
+        return 3
+    if stable_id.startswith("eddystone:"):
+        return 2
+    return 1  # ble:<addr> or cb:<uuid>
+
+
 class MinewtechD15NConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a UI-driven setup for the Minewtech D15N integration."""
 
@@ -78,10 +96,14 @@ class MinewtechD15NConfigFlow(ConfigFlow, domain=DOMAIN):
         # async_step_bluetooth_confirm to build the final entry.
         self._discovery_info: BluetoothServiceInfoBleak | None = None
         self._stable_id: str | None = None
+        # Carried over from async_step_user when the user picks a beacon
+        # that has no payload-level identifier; async_step_label uses the
+        # address so the resulting entry can still be set up.
+        self._pending_label_info: BluetoothServiceInfoBleak | None = None
 
     @staticmethod
-    def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
-        return MinewtechD15NOptionsFlow(config_entry)
+    def async_get_options_flow(_config_entry: ConfigEntry) -> OptionsFlow:
+        return MinewtechD15NOptionsFlow()
 
     async def async_step_bluetooth(
         self, discovery_info: BluetoothServiceInfoBleak
@@ -95,9 +117,11 @@ class MinewtechD15NConfigFlow(ConfigFlow, domain=DOMAIN):
             return self.async_abort(reason="no_stable_id")
 
         await self.async_set_unique_id(stable_id)
-        self._abort_if_unique_id_configured(
-            updates={CONF_ADDRESS: discovery_info.address}
-        )
+        # No `updates=` here: we are address-pinned (the coordinator listens
+        # on the MAC from async_setup_entry). Silently updating entry.data
+        # without reloading the coordinator would cause the two to diverge.
+        # If the beacon's MAC ever changes the user creates a new entry.
+        self._abort_if_unique_id_configured()
 
         self._discovery_info = discovery_info
         self._stable_id = stable_id
@@ -133,13 +157,12 @@ class MinewtechD15NConfigFlow(ConfigFlow, domain=DOMAIN):
         """Manual entry: pick a discovered beacon from a dropdown.
 
         If no D15N beacons are currently visible, the flow aborts with the
-        ``no_devices_found`` translation key. PLAN.md §10.2 contemplates a
-        label-driven fallback for the case where derive_stable_id() always
-        returns None; that path is implemented in
-        :meth:`async_step_label` and only reachable from a side branch in
-        :meth:`async_step_bluetooth` (aborts there flow into a discovery
-        card, while the user step matches HA's "+ Add integration"
-        pattern).
+        ``no_devices_found`` translation key. If a beacon is in range but
+        carries no payload-level identifier (Eddystone-UID / iBeacon both
+        missing, address is RANDOM_PRIVATE etc.), the user is forwarded to
+        :meth:`async_step_label` which collects a free-text label per
+        PLAN.md §10.2 — the chosen beacon's address is carried along so
+        the resulting entry can still anchor the address-pinned coordinator.
         """
         discovered = self._async_discoverable_beacons()
 
@@ -153,17 +176,13 @@ class MinewtechD15NConfigFlow(ConfigFlow, domain=DOMAIN):
                 return self.async_abort(reason="device_lost")
             stable_id = derive_stable_id(info)
             if stable_id is None:
-                # Re-show the form with an error so the user can retry or
-                # use a label instead of guessing.
-                return self.async_show_form(
-                    step_id="user",
-                    data_schema=self._user_schema(discovered),
-                    errors={"base": "no_stable_id"},
-                )
+                # Cascade fell through entirely — defer the unique-id to a
+                # user-supplied label, but remember which beacon was picked
+                # so we can still pin the coordinator to its address.
+                self._pending_label_info = info
+                return await self.async_step_label()
             await self.async_set_unique_id(stable_id)
-            self._abort_if_unique_id_configured(
-                updates={CONF_ADDRESS: info.address}
-            )
+            self._abort_if_unique_id_configured()
             return self._create_entry(stable_id=stable_id, address=info.address)
 
         return self.async_show_form(
@@ -176,36 +195,51 @@ class MinewtechD15NConfigFlow(ConfigFlow, domain=DOMAIN):
     ) -> ConfigFlowResult:
         """Free-text fallback used when no stable-id can be derived.
 
+        Only reachable as a side branch from :meth:`async_step_user`, which
+        seeds ``self._pending_label_info`` with the beacon the user picked.
+        That beacon's address anchors the address-pinned coordinator; the
+        label produces the ``manual:<sha256>`` unique-id per PLAN.md §10.2.
+
         The label is normalised (``strip().casefold()``) before hashing so
-        ``"  Mama "`` and ``"mama"`` produce the same unique-id. Collision
-        is rejected with a ``label_in_use`` error pointing the user at a
-        more specific name.
+        ``"  Mama "`` and ``"mama"`` collide deterministically. Collision
+        against an existing entry is rejected with a ``label_in_use``
+        error pointing the user at a more specific name.
         """
+        if self._pending_label_info is None:
+            # Defensive: this step has no standalone entry point — if it
+            # is ever reached without a pre-seeded beacon, abort cleanly
+            # rather than creating an entry that the coordinator cannot
+            # set up.
+            return self.async_abort(reason="no_devices_found")
+
+        info = self._pending_label_info
+        schema = vol.Schema({vol.Required("label"): str})
+
         if user_input is not None:
             label = user_input["label"]
             stable_id = derive_manual_stable_id(label)
             if self._has_unique_id(stable_id):
                 return self.async_show_form(
                     step_id="label",
-                    data_schema=vol.Schema({vol.Required("label"): str}),
+                    data_schema=schema,
                     errors={"label": "label_in_use"},
                 )
             await self.async_set_unique_id(stable_id)
             self._abort_if_unique_id_configured()
-            # Manual entries carry no address — record None so the
-            # diagnostic snapshot is explicit instead of missing the key.
             return self.async_create_entry(
                 title=label.strip(),
                 data={
                     CONF_STABLE_ID: stable_id,
-                    CONF_ADDRESS: None,
+                    CONF_ADDRESS: info.address,
                     CONF_ADDRESS_TYPE: AddressType.UNKNOWN.value,
                 },
+                options={CONF_MAX_AGE_SECONDS: DEFAULT_MAX_AGE_SECONDS},
             )
 
         return self.async_show_form(
             step_id="label",
-            data_schema=vol.Schema({vol.Required("label"): str}),
+            data_schema=schema,
+            description_placeholders={"address": info.address},
         )
 
     def _create_entry(self, *, stable_id: str, address: str) -> ConfigFlowResult:
@@ -233,25 +267,43 @@ class MinewtechD15NConfigFlow(ConfigFlow, domain=DOMAIN):
         """Collect every currently-visible D15N beacon keyed by address.
 
         Filters HA's ``async_discovered_service_info`` view through our
-        ``is_d15n`` defense-in-depth check; entries whose stable-id is
-        already configured are removed so the dropdown does not let the
-        user re-add the same beacon.
+        ``is_d15n`` defense-in-depth check, then collapses multiple
+        snapshots of the same address to a *single* preferred frame:
+
+        - If at least one snapshot yields a payload-level stable-id
+          (Tier 1 iBeacon or Tier 2 Eddystone-UID), that snapshot wins.
+        - Otherwise the first remaining snapshot is kept; the dropdown
+          entry will still surface, but the user is forwarded to
+          :meth:`async_step_label` on selection.
+
+        Already-configured beacons (unique-id matches an existing entry)
+        are dropped from the dropdown so the user cannot re-add them.
         """
-        seen: dict[str, BluetoothServiceInfoBleak] = {}
         configured_ids = {
             entry.unique_id
             for entry in self._async_current_entries(include_ignore=False)
         }
+        candidates: dict[str, BluetoothServiceInfoBleak] = {}
         for info in async_discovered_service_info(self.hass):
             if not is_d15n(info):
                 continue
-            if info.address in seen:
+            current_best = candidates.get(info.address)
+            if current_best is None:
+                candidates[info.address] = info
                 continue
+            # Replace only when this snapshot reaches a higher stable-id
+            # tier than what we already have — otherwise stay with the
+            # earlier frame so the dropdown order is stable.
+            if _stable_id_tier(info) > _stable_id_tier(current_best):
+                candidates[info.address] = info
+
+        result: dict[str, BluetoothServiceInfoBleak] = {}
+        for address, info in candidates.items():
             stable_id = derive_stable_id(info)
             if stable_id is not None and stable_id in configured_ids:
                 continue
-            seen[info.address] = info
-        return seen
+            result[address] = info
+        return result
 
     @staticmethod
     def _user_schema(
@@ -275,19 +327,13 @@ class MinewtechD15NConfigFlow(ConfigFlow, domain=DOMAIN):
 class MinewtechD15NOptionsFlow(OptionsFlow):
     """Lets the user tune the ``device_tracker`` timeout after setup."""
 
-    def __init__(self, config_entry: ConfigEntry) -> None:
-        # The HA OptionsFlow base no longer accepts the config entry in
-        # the constructor, but storing the reference simplifies our
-        # form-defaults logic without altering the framework contract.
-        self._config_entry = config_entry
-
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
 
-        current = self._config_entry.options.get(
+        current = self.config_entry.options.get(
             CONF_MAX_AGE_SECONDS, DEFAULT_MAX_AGE_SECONDS
         )
         return self.async_show_form(
