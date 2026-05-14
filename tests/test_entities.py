@@ -64,6 +64,7 @@ def _make_bare_coordinator() -> D15NPassiveCoordinator:
         D15NPassiveCoordinator
     )
     coord._last_advertisement = None
+    coord._last_battery_pct = None
     coord._update_listeners = []
     coord._processors = []
     coord.last_update_success = True
@@ -127,17 +128,21 @@ class TestSensorValues:
         sensor = D15NBatterySensor(coord, STABLE_ID)
         assert sensor.native_value is None
 
-    def test_battery_reads_pct_from_advertisement(self) -> None:
+    def test_battery_reads_pct_from_tlm_frame(self) -> None:
         coord = _make_bare_coordinator()
-        coord._last_advertisement = _make_advertisement(battery_pct=72)
+        coord._process_update(_make_advertisement(battery_pct=72))
         sensor = D15NBatterySensor(coord, STABLE_ID)
         assert sensor.native_value == 72
 
-    def test_battery_none_when_frame_has_no_voltage(self) -> None:
+    def test_battery_sticky_across_non_tlm_frames(self) -> None:
+        # A UID/URL frame (battery_pct=None) must NOT reset the cached value
+        # to None — that would cause the sensor to flap between 72 and unknown
+        # as the beacon rotates through its advertisement slots.
         coord = _make_bare_coordinator()
-        coord._last_advertisement = _make_advertisement(battery_pct=None)
+        coord._process_update(_make_advertisement(battery_pct=72))
+        coord._process_update(_make_advertisement(battery_pct=None))  # UID/URL
         sensor = D15NBatterySensor(coord, STABLE_ID)
-        assert sensor.native_value is None
+        assert sensor.native_value == 72  # must stay at 72, not become None
 
     def test_rssi_returns_none_before_first_adv(self) -> None:
         coord = _make_bare_coordinator()
@@ -268,11 +273,9 @@ class TestEntitySetup:
             fake_coord.async_start = MagicMock(return_value=MagicMock())
             await hass.config_entries.async_setup(entry.entry_id)
 
-        # Simulate a real advertisement arriving.
-        adv = _make_advertisement(battery_pct=90, rssi=-50)
-        fake_coord._last_advertisement = adv
-        for listener in list(fake_coord._update_listeners):
-            listener()
+        # Simulate a TLM advertisement arriving via _process_update so that
+        # both _last_advertisement and _last_battery_pct are updated.
+        fake_coord._process_update(_make_advertisement(battery_pct=90, rssi=-50))
         await hass.async_block_till_done()
 
         battery_state = hass.states.get(f"sensor.d15n_{MAC.replace(':', '')}_battery")

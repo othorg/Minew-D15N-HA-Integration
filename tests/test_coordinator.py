@@ -83,6 +83,7 @@ class TestProcessUpdate:
             D15NPassiveCoordinator
         )
         coord._last_advertisement = None
+        coord._last_battery_pct = None
         coord._processors = []
         coord._update_listeners = []
         coord.last_update_success = True

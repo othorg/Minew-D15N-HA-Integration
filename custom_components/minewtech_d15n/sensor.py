@@ -62,8 +62,12 @@ class D15NBatterySensor(D15NEntity, SensorEntity):
 
     @property
     def native_value(self) -> int | None:
-        adv = self._coordinator.last_advertisement
-        return adv.battery_pct if adv is not None else None
+        # Use the coordinator's sticky cache instead of the raw
+        # advertisement field: only TLM frames carry battery data, so
+        # reading directly from last_advertisement causes the sensor to
+        # flap between the real value and unknown every time a UID/URL/
+        # iBeacon slot is received.
+        return self._coordinator.last_battery_pct
 
 
 class D15NRssiSensor(D15NEntity, SensorEntity):

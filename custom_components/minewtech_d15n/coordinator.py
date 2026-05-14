@@ -56,7 +56,21 @@ class D15NPassiveCoordinator(
             connectable=False,
         )
         self._last_advertisement: D15NAdvertisement | None = None
+        self._last_battery_pct: int | None = None
         self._update_listeners: list[Callable[[], None]] = []
+
+    @property
+    def last_battery_pct(self) -> int | None:
+        """Return the most recently received battery percentage.
+
+        Unlike ``last_advertisement.battery_pct``, this value is sticky:
+        it is only overwritten when a non-``None`` value arrives (i.e. a
+        TLM frame). Eddystone-UID / URL / iBeacon frames carry no battery
+        data, so reading ``battery_pct`` from the raw advertisement causes
+        the sensor to flap between the real value and ``unknown`` as the
+        beacon rotates through its advertisement slots.
+        """
+        return self._last_battery_pct
 
     @callback
     def async_add_listener(self, listener: Callable[[], None]) -> Callable[[], None]:
@@ -106,6 +120,8 @@ class D15NPassiveCoordinator(
     ) -> None:
         if update is not None:
             self._last_advertisement = update
+            if update.battery_pct is not None:
+                self._last_battery_pct = update.battery_pct
         super()._process_update(update, was_available)
         for listener in list(self._update_listeners):
             listener()
