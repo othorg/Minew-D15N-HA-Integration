@@ -53,18 +53,6 @@ class D15NDeviceTracker(D15NEntity, ScannerEntity):
 
     _attr_source_type = SourceType.BLUETOOTH_LE
 
-    @property
-    def entity_registry_enabled_default(self) -> bool:
-        """Always enable the device tracker.
-
-        ``ScannerEntity.entity_registry_enabled_default`` returns ``False``
-        when ``find_device_entry()`` cannot locate a device by MAC connection.
-        Our device is registered via identifiers, not MAC connections, so the
-        base check always yields ``False``. Override with an unconditional
-        ``True`` so the entity is visible immediately after setup without the
-        user having to manually enable it.
-        """
-        return True
 
     def __init__(
         self,
@@ -75,7 +63,23 @@ class D15NDeviceTracker(D15NEntity, ScannerEntity):
         super().__init__(coordinator, stable_id)
         self._entry = entry
         self._attr_unique_id = f"{stable_id}_device_tracker"
-        self._attr_mac_address = coordinator.address
+        # Do NOT set _attr_mac_address: ScannerEntity registers the MAC in
+        # HA's network-MAC device registry and conflicts with any existing
+        # tracker for the same beacon (e.g. a legacy Flair / BTHome entry).
+        # Without mac_address, ScannerEntity.entity_registry_enabled_default
+        # short-circuits to True (first branch: mac_address is None).
+        # We must also override unique_id because ScannerEntity.unique_id
+        # returns self.mac_address, which would be None without the attribute.
+
+    @property
+    def unique_id(self) -> str | None:
+        """Return the stable-id-based unique identifier.
+
+        ``ScannerEntity.unique_id`` returns ``self.mac_address``.  Without
+        ``_attr_mac_address``, that would be ``None`` and the entity could
+        not be registered.  Override to use our own stable identifier.
+        """
+        return self._attr_unique_id
 
     @property
     def is_connected(self) -> bool:
