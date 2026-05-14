@@ -25,7 +25,9 @@ jobs:
           # Let HA 2025.1 pin a compatible dependency set itself.
           # Forcing newer transitive deps here (e.g. aioesphomeapi>=45)
           # can create resolver conflicts with HA's own pins.
-          pip install "homeassistant==2025.1.4"
+          pip install \
+            "homeassistant==2025.1.4" \
+            "pyserial>=3.5"
 
       - name: Import integration modules
         run: |
