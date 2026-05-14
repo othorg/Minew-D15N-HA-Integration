@@ -1,0 +1,12 @@
+{
+  "description": "iBeacon frame from physical D15N over hci0/BlueZ (2026-05-14)",
+  "source": "HA device-info view of D15N at C3:00:00:4B:06:53",
+  "manufacturer_id": 76,
+  "manufacturer_data_hex": "0215e2c56db5dffb48d2b060d0f5a71096e000000000c5",
+  "expected": {
+    "uuid": "e2c56db5-dffb-48d2-b060-d0f5a71096e0",
+    "major": 0,
+    "minor": 0,
+    "tx_power_at_1m_dbm": -59
+  }
+}

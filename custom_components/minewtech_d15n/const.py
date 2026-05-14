@@ -21,6 +21,11 @@ EDDYSTONE_FRAME_TYPE_UID: Final = 0x00
 EDDYSTONE_FRAME_TYPE_URL: Final = 0x10
 EDDYSTONE_FRAME_TYPE_TLM: Final = 0x20
 
+# iBeacon advertising — manufacturer-data layout
+# (Apple manufacturer 0x004C, header bytes 0x02 0x15, then UUID/Major/Minor/Power).
+APPLE_MANUFACTURER_ID: Final = 0x004C
+IBEACON_PREFIX: Final = b"\x02\x15"
+
 # Coordinator behaviour
 DEFAULT_MAX_AGE_SECONDS: Final = 300
 MIN_MAX_AGE_SECONDS: Final = 30

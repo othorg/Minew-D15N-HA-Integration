@@ -125,6 +125,35 @@ fallbacks that won't trigger because both higher tiers are populated on this
 device. The `derive_stable_id()` function in `parser.py` (Phase 2) will be
 written against this evidence.
 
+## HA / BlueZ view (production)
+
+On 2026-05-14 a `Bluetooth → C3:00:00:4B:06:53` device-info screenshot from
+the WoMo HA instance (Realtek BT 5.3 adapter, hci0, source MAC
+`8A:88:4B:A2:14:F1`) showed the full payload set, including everything
+macOS strips out:
+
+| Field | Bytes / value | Notes |
+|---|---|---|
+| Address | `C3:00:00:4B:06:53` | confirms tier-4 candidate |
+| Name | `C3:00:00:4B:06:53` | no `local_name` in ADV, HA falls back to address |
+| Manufacturer-data `0x004C` | `02 15 E2C56DB5DFFB48D2B060D0F5A71096E0 0000 0000 C5` | full iBeacon: UUID, Major=0, Minor=0, power@1m = −59 dBm |
+| Service-data `0xfeaa` | `10 e8 01 6d696e6577 00` | Eddystone-URL |
+| Service-data `0xffe1` | `a1 08 64 53 06 4b 0000 c3 44 31 35 4e` | trails with ASCII `D15N` — vendor-internal name slot |
+| Service-data `0xc5e2` | `6d b5 df fb 48 d2 …` | HA-synthesized — the iBeacon UUID minus its first two bytes, indexed by short UUID `0xc5e2` = byte-reversed `E2:C5` |
+| Service UUIDs | `fff1`, `ffe1`, `7f280001-…`, `feaa` | all four are advertised in the ADV header |
+
+**Implication for v1:**
+
+- Tier 1 (iBeacon) is the preferred stable-id in production. `derive_stable_id`
+  in [`parser.py`](../custom_components/minewtech_d15n/parser.py) returns
+  `ibeacon:e2c56db5-dffb-48d2-b060-d0f5a71096e0:0:0` for this device.
+- Tier 2 (Eddystone-UID) remains the macOS development fallback because
+  CoreBluetooth blocks the manufacturer-data path.
+- The `0xffe1` slot's trailing ASCII `D15N` is a candidate for a future
+  defense-in-depth `is_d15n()` check, but the vendor UUID `7f280001-…`
+  already provides sufficient selectivity and is what the manifest matcher
+  uses.
+
 ## macOS-specific sniffing caveats
 
 The development sniffer runs on macOS, but Home Assistant runs on Linux. Two
