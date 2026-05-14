@@ -22,11 +22,10 @@ jobs:
       - name: Install Home Assistant minimum + Linux-only deps
         run: |
           pip install --upgrade pip
-          pip install \
-            "homeassistant==2025.1.4" \
-            "aiousbwatcher>=1.0" \
-            "serialx>=1.0" \
-            "aioesphomeapi>=45"
+          # Let HA 2025.1 pin a compatible dependency set itself.
+          # Forcing newer transitive deps here (e.g. aioesphomeapi>=45)
+          # can create resolver conflicts with HA's own pins.
+          pip install "homeassistant==2025.1.4"
 
       - name: Import integration modules
         run: |
