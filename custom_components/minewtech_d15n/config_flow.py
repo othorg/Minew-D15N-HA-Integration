@@ -7,9 +7,12 @@ UI-only setup with two entry points:
   ``service_uuid`` filter from ``manifest.json``. The user just sees a
   discovery card and confirms.
 - :meth:`async_step_user` is the manual fallback. The form lists every
-  D15N currently in range and lets the user pick one; if no beacon is
-  discoverable a free-text label is offered, which produces a
-  ``manual:<sha256>`` stable-id per PLAN.md §10.2.
+  D15N currently in range and lets the user pick one. If the chosen
+  beacon carries no stable identifier (no iBeacon, no Eddystone-UID,
+  and its address is not RANDOM_STATIC), the user is forwarded to
+  :meth:`async_step_label` to supply a free-text label, which produces
+  a ``manual:<sha256>`` stable-id per PLAN.md §10.2. If no beacon at
+  all is discoverable the flow aborts with ``no_devices_found``.
 
 Both entry points compute the same :func:`derive_stable_id` cascade as
 the parser, set the result as ``unique_id``, and abort with the
