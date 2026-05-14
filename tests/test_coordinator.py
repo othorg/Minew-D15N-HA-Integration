@@ -170,6 +170,38 @@ class TestEntrySetupAndUnload:
         fake_hass.config_entries.async_forward_entry_setups.assert_called_once()
 
     @pytest.mark.asyncio
+    async def test_async_setup_entry_starts_after_platform_forwarding(
+        self,
+        fake_hass: MagicMock,
+        fake_entry: MagicMock,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        forwarded = False
+
+        async def _forward(*args: Any, **kwargs: Any) -> bool:
+            nonlocal forwarded
+            forwarded = True
+            return True
+
+        fake_hass.config_entries.async_forward_entry_setups = AsyncMock(side_effect=_forward)
+        fake_coordinator = MagicMock()
+
+        def _async_start() -> MagicMock:
+            assert forwarded, "coordinator.async_start called before platform forwarding"
+            return MagicMock()
+
+        fake_coordinator.async_start.side_effect = _async_start
+        monkeypatch.setattr(
+            "custom_components.minewtech_d15n.coordinator.D15NPassiveCoordinator",
+            lambda hass, addr: fake_coordinator,
+        )
+
+        ok = await async_setup_entry(fake_hass, fake_entry)
+        assert ok is True
+        fake_hass.config_entries.async_forward_entry_setups.assert_called_once()
+        fake_coordinator.async_start.assert_called_once_with()
+
+    @pytest.mark.asyncio
     async def test_async_unload_entry_delegates_to_platform_unload(
         self, fake_hass: MagicMock, fake_entry: MagicMock
     ) -> None:

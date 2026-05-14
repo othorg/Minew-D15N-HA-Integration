@@ -80,6 +80,22 @@ class TestBluetoothDiscoveryFlow:
         assert result["reason"] == "already_configured"
 
     @pytest.mark.asyncio
+    async def test_aborts_when_same_address_already_configured_with_different_id(
+        self, hass: Any, uid_fixture: dict[str, Any]
+    ) -> None:
+        MockConfigEntry(
+            domain=DOMAIN,
+            unique_id="manual:deadbeefcafe",
+            data={CONF_STABLE_ID: "manual:deadbeefcafe", CONF_ADDRESS: "c3:00:00:4b:06:53"},
+        ).add_to_hass(hass)
+        info = _make_service_info_with_address("C3:00:00:4B:06:53", uid_fixture["service_data_hex"])
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": SOURCE_BLUETOOTH}, data=info
+        )
+        assert result["type"] == FlowResultType.ABORT
+        assert result["reason"] == "already_configured"
+
+    @pytest.mark.asyncio
     async def test_aborts_when_no_stable_id_derivable(self, hass: Any) -> None:
         # URL frame on an UNKNOWN address: derive_stable_id returns None.
         info = make_service_info(
@@ -258,6 +274,30 @@ class TestLabelFallback:
         assert result["errors"] == {"label": "label_in_use"}
 
     @pytest.mark.asyncio
+    async def test_label_rejects_whitespace_only_value(self, hass: Any) -> None:
+        info = make_service_info(
+            service_data_hex="10e8016d696e657700",
+            address="12:34:56:78:9a:bc",
+        )
+        with patch(
+            "custom_components.minewtech_d15n.config_flow.async_discovered_service_info",
+            return_value=[info],
+        ):
+            result = await hass.config_entries.flow.async_init(
+                DOMAIN, context={"source": SOURCE_USER}
+            )
+            result = await hass.config_entries.flow.async_configure(
+                result["flow_id"], user_input={CONF_ADDRESS: "12:34:56:78:9a:bc"}
+            )
+            assert result["step_id"] == "label"
+            result = await hass.config_entries.flow.async_configure(
+                result["flow_id"], user_input={"label": "   "}
+            )
+        assert result["type"] == FlowResultType.FORM
+        assert result["step_id"] == "label"
+        assert result["errors"] == {"label": "label_empty"}
+
+    @pytest.mark.asyncio
     async def test_label_step_aborts_when_invoked_standalone(self, hass: Any) -> None:
         """Defensive: label-step has no standalone trigger and must abort
         if HA ever routes there without async_step_user seeding the info.
@@ -337,6 +377,29 @@ class TestDiscoverableBeaconsPriority:
             schema_keys = result["data_schema"].schema[CONF_ADDRESS].container
             assert "c3:00:00:4b:06:53" not in schema_keys
             assert "c3:00:00:4b:06:54" in schema_keys
+
+    @pytest.mark.asyncio
+    async def test_user_dropdown_hides_beacon_when_address_already_configured(
+        self, hass: Any, uid_fixture: dict[str, Any]
+    ) -> None:
+        MockConfigEntry(
+            domain=DOMAIN,
+            unique_id="manual:deadbeefcafe",
+            data={CONF_STABLE_ID: "manual:deadbeefcafe", CONF_ADDRESS: "c3:00:00:4b:06:53"},
+        ).add_to_hass(hass)
+        info = make_service_info(
+            service_data_hex=uid_fixture["service_data_hex"],
+            address="C3:00:00:4B:06:53",
+        )
+        with patch(
+            "custom_components.minewtech_d15n.config_flow.async_discovered_service_info",
+            return_value=[info],
+        ):
+            result = await hass.config_entries.flow.async_init(
+                DOMAIN, context={"source": SOURCE_USER}
+            )
+        assert result["type"] == FlowResultType.ABORT
+        assert result["reason"] == "no_devices_found"
 
 
 class TestOptionsFlow:

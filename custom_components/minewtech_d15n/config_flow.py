@@ -77,6 +77,11 @@ def _entry_title(stable_id: str, address: str) -> str:
     return f"Minewtech D15N ({address})"
 
 
+def _normalise_address(address: str) -> str:
+    """Return a canonical address representation for comparisons/storage."""
+    return address.strip().lower()
+
+
 def _stable_id_tier(info: BluetoothServiceInfoBleak) -> int:
     """Rank an advertisement by the stable-id tier it can produce.
 
@@ -119,8 +124,11 @@ class MinewtechD15NConfigFlow(ConfigFlow, domain=DOMAIN):
         self, discovery_info: BluetoothServiceInfoBleak
     ) -> ConfigFlowResult:
         """Handle an HA bluetooth-integration auto-discovery."""
+        address = _normalise_address(discovery_info.address)
         if not is_d15n(discovery_info):
             return self.async_abort(reason="not_d15n")
+        if self._has_configured_address(address):
+            return self.async_abort(reason="already_configured")
 
         stable_id = derive_stable_id(discovery_info)
         if stable_id is None:
@@ -136,7 +144,7 @@ class MinewtechD15NConfigFlow(ConfigFlow, domain=DOMAIN):
         self._discovery_info = discovery_info
         self._stable_id = stable_id
         self.context["title_placeholders"] = {
-            "address": discovery_info.address,
+            "address": address,
         }
         return await self.async_step_bluetooth_confirm()
 
@@ -150,7 +158,7 @@ class MinewtechD15NConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             return self._create_entry(
                 stable_id=self._stable_id,
-                address=self._discovery_info.address,
+                address=_normalise_address(self._discovery_info.address),
             )
 
         return self.async_show_form(
@@ -182,6 +190,8 @@ class MinewtechD15NConfigFlow(ConfigFlow, domain=DOMAIN):
             info = discovered.get(chosen_address)
             if info is None:
                 return self.async_abort(reason="device_lost")
+            if self._has_configured_address(info.address):
+                return self.async_abort(reason="already_configured")
             stable_id = derive_stable_id(info)
             if stable_id is None:
                 # Cascade fell through entirely — defer the unique-id to a
@@ -223,6 +233,13 @@ class MinewtechD15NConfigFlow(ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             label = user_input["label"]
+            if not label.strip():
+                return self.async_show_form(
+                    step_id="label",
+                    data_schema=schema,
+                    errors={"label": "label_empty"},
+                    description_placeholders={"address": info.address},
+                )
             stable_id = derive_manual_stable_id(label)
             if self._has_unique_id(stable_id):
                 return self.async_show_form(
@@ -236,7 +253,7 @@ class MinewtechD15NConfigFlow(ConfigFlow, domain=DOMAIN):
                 title=label.strip(),
                 data={
                     CONF_STABLE_ID: stable_id,
-                    CONF_ADDRESS: info.address,
+                    CONF_ADDRESS: _normalise_address(info.address),
                     CONF_ADDRESS_TYPE: AddressType.UNKNOWN.value,
                 },
                 options={
@@ -260,6 +277,7 @@ class MinewtechD15NConfigFlow(ConfigFlow, domain=DOMAIN):
         ``max_age_seconds`` with the default seeded so the device_tracker
         works out of the box.
         """
+        address = _normalise_address(address)
         return self.async_create_entry(
             title=_entry_title(stable_id, address),
             data={
@@ -294,22 +312,30 @@ class MinewtechD15NConfigFlow(ConfigFlow, domain=DOMAIN):
         configured_ids = {
             entry.unique_id for entry in self._async_current_entries(include_ignore=False)
         }
+        configured_addresses = {
+            _normalise_address(address)
+            for entry in self._async_current_entries(include_ignore=False)
+            if (address := entry.data.get(CONF_ADDRESS))
+        }
         candidates: dict[str, BluetoothServiceInfoBleak] = {}
         for info in async_discovered_service_info(self.hass):
             if not is_d15n(info):
                 continue
-            current_best = candidates.get(info.address)
+            normalised_address = _normalise_address(info.address)
+            current_best = candidates.get(normalised_address)
             if current_best is None:
-                candidates[info.address] = info
+                candidates[normalised_address] = info
                 continue
             # Replace only when this snapshot reaches a higher stable-id
             # tier than what we already have — otherwise stay with the
             # earlier frame so the dropdown order is stable.
             if _stable_id_tier(info) > _stable_id_tier(current_best):
-                candidates[info.address] = info
+                candidates[normalised_address] = info
 
         result: dict[str, BluetoothServiceInfoBleak] = {}
         for address, info in candidates.items():
+            if _normalise_address(address) in configured_addresses:
+                continue
             stable_id = derive_stable_id(info)
             if stable_id is not None and stable_id in configured_ids:
                 continue
@@ -331,6 +357,14 @@ class MinewtechD15NConfigFlow(ConfigFlow, domain=DOMAIN):
     def _has_unique_id(self, stable_id: str) -> bool:
         for entry in self._async_current_entries(include_ignore=False):
             if entry.unique_id == stable_id:
+                return True
+        return False
+
+    def _has_configured_address(self, address: str) -> bool:
+        normalised = _normalise_address(address)
+        for entry in self._async_current_entries(include_ignore=False):
+            existing = entry.data.get(CONF_ADDRESS)
+            if isinstance(existing, str) and _normalise_address(existing) == normalised:
                 return True
         return False
 

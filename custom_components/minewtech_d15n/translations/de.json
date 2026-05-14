@@ -19,7 +19,8 @@
         },
         "error": {
             "no_stable_id": "Aus dem Advertisement konnte keine stabile Kennung extrahiert werden. Nutze die manuelle Einrichtung mit einem Label.",
-            "label_in_use": "Dieses Label ist bereits einem anderen Beacon zugeordnet. Verwende eine eindeutigere Beschreibung, z. B. „Schlüsselband Mama“ statt „Schlüssel“."
+            "label_in_use": "Dieses Label ist bereits einem anderen Beacon zugeordnet. Verwende eine eindeutigere Beschreibung, z. B. „Schlüsselband Mama“ statt „Schlüssel“.",
+            "label_empty": "Bitte gib einen nicht-leeren Namen ein."
         },
         "abort": {
             "already_configured": "Dieser Minewtech D15N ist in Home Assistant bereits eingerichtet.",

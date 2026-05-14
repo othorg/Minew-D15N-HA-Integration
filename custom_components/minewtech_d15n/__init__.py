@@ -41,8 +41,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: D15NConfigEntry) -> bool
     address: str = entry.data[CONF_ADDRESS]
     coordinator = D15NPassiveCoordinator(hass, address)
     entry.runtime_data = coordinator
-    entry.async_on_unload(coordinator.async_start())
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    # Start only after platforms are set up so their listeners are registered
+    # before the first advertisements are processed.
+    entry.async_on_unload(coordinator.async_start())
     return True
 
 
