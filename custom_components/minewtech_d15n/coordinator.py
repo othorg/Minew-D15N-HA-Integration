@@ -24,7 +24,7 @@ from homeassistant.components.bluetooth.passive_update_processor import (
 )
 from homeassistant.core import callback
 
-from .parser import D15NAdvertisement, parse
+from .parser import D15NAdvertisement, parse, parse_for_known_address
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -93,13 +93,17 @@ class D15NPassiveCoordinator(PassiveBluetoothProcessorCoordinator[D15NAdvertisem
     def _update_method(
         service_info: BluetoothServiceInfoBleak,
     ) -> D15NAdvertisement | None:
-        """Parse one ADV; return ``None`` for non-D15N frames.
+        """Parse one ADV for the already-selected beacon address.
 
-        Defined as a static method (not a free function reference) so
-        tests can patch :func:`parse` via the module-level symbol and
-        still see the coordinator pick up the patched implementation.
+        The coordinator itself is address-filtered by HA bluetooth. We keep
+        :func:`parse` in the loop for explicit D15N guard semantics, then
+        fall back to :func:`parse_for_known_address` so iBeacon-only /
+        sparse slot frames from the same address still refresh tracker state.
         """
-        return parse(service_info)
+        strict = parse(service_info)
+        if strict is not None:
+            return strict
+        return parse_for_known_address(service_info)
 
     @property
     def last_advertisement(self) -> D15NAdvertisement | None:

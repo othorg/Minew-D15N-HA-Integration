@@ -23,6 +23,7 @@ from custom_components.minewtech_d15n.parser import (
     parse_eddystone_tlm,
     parse_eddystone_uid,
     parse_eddystone_url,
+    parse_for_known_address,
     parse_ibeacon,
 )
 
@@ -208,6 +209,15 @@ class TestParse:
             extra_service_uuids=(),
         )
         assert parse(info) is None
+
+    def test_parse_for_known_address_accepts_frame_without_vendor_uuid(self) -> None:
+        info = make_service_info(
+            service_data_hex="00e800112233445566778899abcde76b01f4",
+            extra_service_uuids=(),
+        )
+        adv = parse_for_known_address(info)
+        assert adv is not None
+        assert adv.rssi == info.rssi
 
     def test_parses_uid_frame_to_dataclass(self, uid_fixture: dict[str, Any]) -> None:
         info = make_service_info(service_data_hex=uid_fixture["service_data_hex"])

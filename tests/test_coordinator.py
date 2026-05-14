@@ -60,12 +60,18 @@ class TestUpdateMethod:
         assert result is not None
         assert result.stable_id is not None
 
-    def test_returns_none_for_non_d15n_advertisement(self) -> None:
+    def test_parses_known_address_frame_even_without_vendor_uuid(self) -> None:
         info = make_service_info(
             service_data_hex="00e800112233445566778899abcde76b01f4",
             extra_service_uuids=(),
         )
-        assert D15NPassiveCoordinator._update_method(info) is None
+        # parse() alone rejects this frame (vendor UUID missing), but the
+        # address-pinned coordinator should still parse it so presence and
+        # last_seen refresh on sparse slots (e.g. iBeacon-only bursts).
+        assert parse(info) is None
+        result = D15NPassiveCoordinator._update_method(info)
+        assert result is not None
+        assert result.rssi == info.rssi
 
 
 class TestProcessUpdate:

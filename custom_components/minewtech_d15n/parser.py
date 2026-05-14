@@ -412,6 +412,18 @@ def parse(service_info: BluetoothServiceInfoBleak) -> D15NAdvertisement | None:
     """
     if not is_d15n(service_info):
         return None
+    return parse_for_known_address(service_info)
+
+
+def parse_for_known_address(service_info: BluetoothServiceInfoBleak) -> D15NAdvertisement:
+    """Parse a Bluetooth ADV for an already-known D15N address.
+
+    Unlike :func:`parse`, this function does not require the vendor UUID
+    guard. It is intended for the address-pinned coordinator path: once
+    setup is complete, Home Assistant already filters advertisements by the
+    selected BLE address, so iBeacon-only / sparse frames from the same
+    beacon should still refresh RSSI/last_seen and presence logic.
+    """
 
     battery_pct: int | None = None
     tlm = service_info.service_data.get(SERVICE_UUID_EDDYSTONE)

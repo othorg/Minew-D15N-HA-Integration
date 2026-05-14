@@ -45,7 +45,7 @@ if TYPE_CHECKING:
 # How often to re-evaluate `is_connected` when no advertisements arrive.
 # Without this, the property would only refresh on incoming ADVs and the
 # tracker would never flip to not_home once the beacon is out of range.
-_PRESENCE_REFRESH_INTERVAL = timedelta(seconds=30)
+_PRESENCE_REFRESH_INTERVAL = timedelta(seconds=5)
 
 
 async def async_setup_entry(
