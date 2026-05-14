@@ -52,6 +52,10 @@ class D15NDeviceTracker(D15NEntity, ScannerEntity):
     """
 
     _attr_source_type = SourceType.BLUETOOTH_LE
+    # ScannerEntity.entity_registry_enabled_default can return False when
+    # the Bluetooth coordinator has not yet registered the device entry.
+    # Force True so the tracker is visible immediately after setup.
+    _attr_entity_registry_enabled_default = True
 
     def __init__(
         self,
