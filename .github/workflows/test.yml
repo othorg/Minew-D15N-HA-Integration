@@ -13,7 +13,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           # pytest-homeassistant-custom-component 0.13.x depends on
           # Home Assistant Core 2026.x which requires Python 3.14.
