@@ -1,6 +1,7 @@
 # Credentials / secrets (NEVER commit)
 .ha_token_*
 *.token
+ha-WoMo.config
 secrets.yaml
 *.env
 .envrc
