@@ -52,10 +52,19 @@ class D15NDeviceTracker(D15NEntity, ScannerEntity):
     """
 
     _attr_source_type = SourceType.BLUETOOTH_LE
-    # ScannerEntity.entity_registry_enabled_default can return False when
-    # the Bluetooth coordinator has not yet registered the device entry.
-    # Force True so the tracker is visible immediately after setup.
-    _attr_entity_registry_enabled_default = True
+
+    @property
+    def entity_registry_enabled_default(self) -> bool:
+        """Always enable the device tracker.
+
+        ``ScannerEntity.entity_registry_enabled_default`` returns ``False``
+        when ``find_device_entry()`` cannot locate a device by MAC connection.
+        Our device is registered via identifiers, not MAC connections, so the
+        base check always yields ``False``. Override with an unconditional
+        ``True`` so the entity is visible immediately after setup without the
+        user having to manually enable it.
+        """
+        return True
 
     def __init__(
         self,
