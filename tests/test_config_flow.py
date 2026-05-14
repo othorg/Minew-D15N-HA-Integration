@@ -17,8 +17,10 @@ from custom_components.minewtech_d15n.config_flow import MinewtechD15NConfigFlow
 from custom_components.minewtech_d15n.const import (
     CONF_ADDRESS,
     CONF_MAX_AGE_SECONDS,
+    CONF_MIN_RSSI,
     CONF_STABLE_ID,
     DEFAULT_MAX_AGE_SECONDS,
+    DEFAULT_MIN_RSSI,
     DOMAIN,
 )
 from custom_components.minewtech_d15n.parser import derive_manual_stable_id
@@ -55,6 +57,7 @@ class TestBluetoothDiscoveryFlow:
         assert result["data"][CONF_STABLE_ID] == f"eddystone:{ns}:{inst}"
         assert result["data"][CONF_ADDRESS] == "c3:00:00:4b:06:53"
         assert result["options"][CONF_MAX_AGE_SECONDS] == DEFAULT_MAX_AGE_SECONDS
+        assert result["options"][CONF_MIN_RSSI] == DEFAULT_MIN_RSSI
 
     @pytest.mark.asyncio
     async def test_aborts_when_already_configured(
@@ -217,6 +220,7 @@ class TestLabelFallback:
         assert result["data"][CONF_STABLE_ID].startswith("manual:")
         assert result["data"][CONF_ADDRESS] == "12:34:56:78:9a:bc"
         assert result["options"][CONF_MAX_AGE_SECONDS] == DEFAULT_MAX_AGE_SECONDS
+        assert result["options"][CONF_MIN_RSSI] == DEFAULT_MIN_RSSI
 
     @pytest.mark.asyncio
     async def test_label_in_use_rejects_collision(self, hass: Any) -> None:
@@ -342,7 +346,10 @@ class TestOptionsFlow:
             domain=DOMAIN,
             unique_id="eddystone:00112233445566778899:abcde76b01f4",
             data={CONF_ADDRESS: "c3:00:00:4b:06:53"},
-            options={CONF_MAX_AGE_SECONDS: DEFAULT_MAX_AGE_SECONDS},
+            options={
+                CONF_MAX_AGE_SECONDS: DEFAULT_MAX_AGE_SECONDS,
+                CONF_MIN_RSSI: DEFAULT_MIN_RSSI,
+            },
         )
         entry.add_to_hass(hass)
 
@@ -351,10 +358,11 @@ class TestOptionsFlow:
         assert result["step_id"] == "init"
 
         result = await hass.config_entries.options.async_configure(
-            result["flow_id"], user_input={CONF_MAX_AGE_SECONDS: 60}
+            result["flow_id"], user_input={CONF_MAX_AGE_SECONDS: 60, CONF_MIN_RSSI: -75}
         )
         assert result["type"] == FlowResultType.CREATE_ENTRY
         assert entry.options[CONF_MAX_AGE_SECONDS] == 60
+        assert entry.options[CONF_MIN_RSSI] == -75
 
     @pytest.mark.asyncio
     async def test_rejects_out_of_range_value(self, hass: Any) -> None:
@@ -371,5 +379,24 @@ class TestOptionsFlow:
         # async_configure.
         with pytest.raises(InvalidData):
             await hass.config_entries.options.async_configure(
-                result["flow_id"], user_input={CONF_MAX_AGE_SECONDS: 5}
+                result["flow_id"], user_input={CONF_MAX_AGE_SECONDS: 5, CONF_MIN_RSSI: -80}
+            )
+
+    @pytest.mark.asyncio
+    async def test_rejects_out_of_range_rssi(self, hass: Any) -> None:
+        entry = MockConfigEntry(
+            domain=DOMAIN,
+            unique_id="eddystone:00112233445566778899:abcde76b01f4",
+            data={CONF_ADDRESS: "c3:00:00:4b:06:53"},
+            options={
+                CONF_MAX_AGE_SECONDS: DEFAULT_MAX_AGE_SECONDS,
+                CONF_MIN_RSSI: DEFAULT_MIN_RSSI,
+            },
+        )
+        entry.add_to_hass(hass)
+
+        result = await hass.config_entries.options.async_init(entry.entry_id)
+        with pytest.raises(InvalidData):
+            await hass.config_entries.options.async_configure(
+                result["flow_id"], user_input={CONF_MAX_AGE_SECONDS: 300, CONF_MIN_RSSI: -20}
             )

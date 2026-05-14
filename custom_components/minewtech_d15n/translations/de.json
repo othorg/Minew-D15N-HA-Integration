@@ -37,12 +37,14 @@
         "step": {
             "init": {
                 "title": "Minewtech-D15N-Optionen",
-                "description": "Stelle ein, wie lange Home Assistant wartet, bevor der Beacon als abwesend markiert wird.",
+                "description": "Stelle die Anwesenheits-Schwellenwerte für diesen Beacon ein.",
                 "data": {
-                    "max_age_seconds": "Abwesend nach (Sekunden)"
+                    "max_age_seconds": "Abwesend nach (Sekunden)",
+                    "min_rssi": "Minimale Signalstärke (dBm)"
                 },
                 "data_description": {
-                    "max_age_seconds": "Wenn für diese Anzahl Sekunden kein Advertisement empfangen wird, wechselt der device_tracker auf „not_home“. Niedrigere Werte erkennen Abwesenheit schneller, neigen aber zu Flapping wenn das Signal kurz blockiert ist. Standard: 300."
+                    "max_age_seconds": "Wenn für diese Anzahl Sekunden kein Advertisement empfangen wird, wechselt der device_tracker auf „not_home“. Niedrigere Werte erkennen Abwesenheit schneller, neigen aber zu Flapping wenn das Signal kurz blockiert ist. Standard: 300.",
+                    "min_rssi": "Advertisements mit schwächerem RSSI als dieser Wert werden für Anwesenheit ignoriert - der Beacon gilt dann als not_home, auch wenn kürzlich ein Paket empfangen wurde. -90 dBm akzeptiert Signale am Rand der BLE-Reichweite; auf z. B. -70 dBm erhöhen, um nur nahe Beacons als anwesend zu werten. Standard: -90."
                 }
             }
         }

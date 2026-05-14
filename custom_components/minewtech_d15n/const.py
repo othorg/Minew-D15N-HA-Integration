@@ -24,6 +24,15 @@ CONF_STABLE_ID: Final = "stable_id"
 # Options-flow keys + range for the device_tracker timeout.
 CONF_MAX_AGE_SECONDS: Final = "max_age_seconds"
 
+# Minimum RSSI (dBm) the last advertisement must reach for the beacon to be
+# considered present. Signals weaker than this threshold are treated as
+# not_home even if the ADV is recent. -90 dBm is a permissive default that
+# accepts beacons at the edge of BLE range.
+CONF_MIN_RSSI: Final = "min_rssi"
+DEFAULT_MIN_RSSI: Final = -90
+MIN_MIN_RSSI: Final = -100
+MAX_MIN_RSSI: Final = -40
+
 # Bluetooth matcher constants — verified in Phase 1 captures (2026-05-14,
 # docs/adv-format.md). The D15N broadcasts a vendor-specific service UUID
 # in every Eddystone advertisement; local_name is never present in the

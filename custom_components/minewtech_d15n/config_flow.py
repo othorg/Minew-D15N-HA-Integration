@@ -20,9 +20,12 @@ the parser, set the result as ``unique_id``, and abort with the
 extracted. Duplicate entries are guarded by
 ``_abort_if_unique_id_configured``.
 
-The options flow exposes a single value: ``max_age_seconds`` (30..3600,
-default 300) — the inactivity window after which ``device_tracker``
-switches to ``not_home``.
+The options flow exposes two presence thresholds:
+
+- ``max_age_seconds`` (30..3600, default 300): inactivity window after
+  which ``device_tracker`` switches to ``not_home``.
+- ``min_rssi`` (-100..-40 dBm, default -90): minimum signal strength
+  required for ``home``.
 """
 
 from __future__ import annotations
@@ -42,11 +45,15 @@ from .const import (
     CONF_ADDRESS,
     CONF_ADDRESS_TYPE,
     CONF_MAX_AGE_SECONDS,
+    CONF_MIN_RSSI,
     CONF_STABLE_ID,
     DEFAULT_MAX_AGE_SECONDS,
+    DEFAULT_MIN_RSSI,
     DOMAIN,
     MAX_MAX_AGE_SECONDS,
+    MAX_MIN_RSSI,
     MIN_MAX_AGE_SECONDS,
+    MIN_MIN_RSSI,
 )
 from .parser import (
     AddressType,
@@ -232,7 +239,10 @@ class MinewtechD15NConfigFlow(ConfigFlow, domain=DOMAIN):
                     CONF_ADDRESS: info.address,
                     CONF_ADDRESS_TYPE: AddressType.UNKNOWN.value,
                 },
-                options={CONF_MAX_AGE_SECONDS: DEFAULT_MAX_AGE_SECONDS},
+                options={
+                    CONF_MAX_AGE_SECONDS: DEFAULT_MAX_AGE_SECONDS,
+                    CONF_MIN_RSSI: DEFAULT_MIN_RSSI,
+                },
             )
 
         return self.async_show_form(
@@ -257,7 +267,10 @@ class MinewtechD15NConfigFlow(ConfigFlow, domain=DOMAIN):
                 CONF_ADDRESS: address,
                 CONF_ADDRESS_TYPE: AddressType.UNKNOWN.value,
             },
-            options={CONF_MAX_AGE_SECONDS: DEFAULT_MAX_AGE_SECONDS},
+            options={
+                CONF_MAX_AGE_SECONDS: DEFAULT_MAX_AGE_SECONDS,
+                CONF_MIN_RSSI: DEFAULT_MIN_RSSI,
+            },
         )
 
     def _async_discoverable_beacons(
@@ -323,21 +336,26 @@ class MinewtechD15NConfigFlow(ConfigFlow, domain=DOMAIN):
 
 
 class MinewtechD15NOptionsFlow(OptionsFlow):
-    """Lets the user tune the ``device_tracker`` timeout after setup."""
+    """Lets the user tune the ``device_tracker`` presence thresholds."""
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
 
-        current = self.config_entry.options.get(CONF_MAX_AGE_SECONDS, DEFAULT_MAX_AGE_SECONDS)
+        current_age = self.config_entry.options.get(CONF_MAX_AGE_SECONDS, DEFAULT_MAX_AGE_SECONDS)
+        current_rssi = self.config_entry.options.get(CONF_MIN_RSSI, DEFAULT_MIN_RSSI)
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema(
                 {
-                    vol.Required(CONF_MAX_AGE_SECONDS, default=current): vol.All(
+                    vol.Required(CONF_MAX_AGE_SECONDS, default=current_age): vol.All(
                         vol.Coerce(int),
                         vol.Range(min=MIN_MAX_AGE_SECONDS, max=MAX_MAX_AGE_SECONDS),
-                    )
+                    ),
+                    vol.Required(CONF_MIN_RSSI, default=current_rssi): vol.All(
+                        vol.Coerce(int),
+                        vol.Range(min=MIN_MIN_RSSI, max=MAX_MIN_RSSI),
+                    ),
                 }
             ),
         )

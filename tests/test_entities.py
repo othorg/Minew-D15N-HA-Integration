@@ -19,8 +19,10 @@ import pytest
 from custom_components.minewtech_d15n.const import (
     CONF_ADDRESS,
     CONF_MAX_AGE_SECONDS,
+    CONF_MIN_RSSI,
     CONF_STABLE_ID,
     DEFAULT_MAX_AGE_SECONDS,
+    DEFAULT_MIN_RSSI,
     DOMAIN,
 )
 from custom_components.minewtech_d15n.coordinator import D15NPassiveCoordinator
@@ -75,7 +77,11 @@ def _make_bare_coordinator() -> D15NPassiveCoordinator:
 def _make_config_entry(**options: Any) -> MagicMock:
     entry = MagicMock()
     entry.data = {CONF_STABLE_ID: STABLE_ID, CONF_ADDRESS: MAC}
-    entry.options = {CONF_MAX_AGE_SECONDS: DEFAULT_MAX_AGE_SECONDS, **options}
+    entry.options = {
+        CONF_MAX_AGE_SECONDS: DEFAULT_MAX_AGE_SECONDS,
+        CONF_MIN_RSSI: DEFAULT_MIN_RSSI,
+        **options,
+    }
     return entry
 
 
@@ -208,8 +214,40 @@ class TestDeviceTrackerIsConnected:
         assert tracker.is_connected is True  # 120 < 300
 
         # Reduce the window; should flip to not_home without reload.
-        entry.options = {CONF_MAX_AGE_SECONDS: 60}
+        entry.options = {CONF_MAX_AGE_SECONDS: 60, CONF_MIN_RSSI: DEFAULT_MIN_RSSI}
         assert tracker.is_connected is False  # 120 > 60
+
+    def test_not_connected_when_signal_weaker_than_threshold(self) -> None:
+        coord = _make_bare_coordinator()
+        entry = _make_config_entry(**{CONF_MIN_RSSI: -70})
+        coord._last_advertisement = _make_advertisement(
+            timestamp=time.monotonic() - 5,
+            rssi=-82,
+        )
+        tracker = D15NDeviceTracker(coord, STABLE_ID, entry)
+        assert tracker.is_connected is False
+
+    def test_connected_when_signal_meets_threshold(self) -> None:
+        coord = _make_bare_coordinator()
+        entry = _make_config_entry(**{CONF_MIN_RSSI: -70})
+        coord._last_advertisement = _make_advertisement(
+            timestamp=time.monotonic() - 5,
+            rssi=-65,
+        )
+        tracker = D15NDeviceTracker(coord, STABLE_ID, entry)
+        assert tracker.is_connected is True
+
+    def test_rssi_threshold_read_live_from_options(self) -> None:
+        coord = _make_bare_coordinator()
+        entry = _make_config_entry(**{CONF_MIN_RSSI: -90})
+        coord._last_advertisement = _make_advertisement(
+            timestamp=time.monotonic() - 5,
+            rssi=-80,
+        )
+        tracker = D15NDeviceTracker(coord, STABLE_ID, entry)
+        assert tracker.is_connected is True
+        entry.options = {CONF_MAX_AGE_SECONDS: 300, CONF_MIN_RSSI: -75}
+        assert tracker.is_connected is False
 
 
 # ---------------------------------------------------------------------------

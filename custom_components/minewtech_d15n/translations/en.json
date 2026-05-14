@@ -37,12 +37,14 @@
         "step": {
             "init": {
                 "title": "Minewtech D15N options",
-                "description": "Tune how long Home Assistant waits before marking the beacon as away.",
+                "description": "Tune the presence thresholds for this beacon.",
                 "data": {
-                    "max_age_seconds": "Away after (seconds)"
+                    "max_age_seconds": "Away after (seconds)",
+                    "min_rssi": "Minimum signal strength (dBm)"
                 },
                 "data_description": {
-                    "max_age_seconds": "If no advertisement is seen for this many seconds, the device_tracker switches to 'not_home'. Lower values catch departures faster but flap when the signal is briefly blocked. Default: 300."
+                    "max_age_seconds": "If no advertisement is seen for this many seconds, the device_tracker switches to 'not_home'. Lower values catch departures faster but flap when the signal is briefly blocked. Default: 300.",
+                    "min_rssi": "Advertisements weaker than this RSSI are ignored for presence - the beacon is treated as not_home even if recently heard. -90 dBm accepts signals at the edge of BLE range; raise to e.g. -70 dBm to require the beacon to be close. Default: -90."
                 }
             }
         }

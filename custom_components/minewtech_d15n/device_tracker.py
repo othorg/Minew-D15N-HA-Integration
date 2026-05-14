@@ -20,7 +20,13 @@ from typing import TYPE_CHECKING
 from homeassistant.components.device_tracker.config_entry import ScannerEntity
 from homeassistant.components.device_tracker.const import SourceType
 
-from .const import CONF_MAX_AGE_SECONDS, CONF_STABLE_ID, DEFAULT_MAX_AGE_SECONDS
+from .const import (
+    CONF_MAX_AGE_SECONDS,
+    CONF_MIN_RSSI,
+    CONF_STABLE_ID,
+    DEFAULT_MAX_AGE_SECONDS,
+    DEFAULT_MIN_RSSI,
+)
 from .entity_base import D15NEntity
 
 if TYPE_CHECKING:
@@ -82,12 +88,26 @@ class D15NDeviceTracker(D15NEntity, ScannerEntity):
 
     @property
     def is_connected(self) -> bool:
-        """Return ``True`` when the beacon was seen within max_age_seconds."""
+        """Return ``True`` when the beacon is present by both time and signal.
+
+        Both conditions must hold:
+        - The most recent advertisement arrived within ``max_age_seconds``.
+        - Its RSSI is at or above ``min_rssi`` (dBm). Weak signals below the
+          threshold are treated as not_home even if the ADV is recent, which
+          prevents false-positive presence from a beacon that is far away but
+          still occasionally heard.
+
+        Both thresholds are read live from ``entry.options`` so changes via
+        the Options Flow take effect immediately without an entry reload.
+        """
         adv = self._coordinator.last_advertisement
         if adv is None:
             return False
         max_age: float = self._entry.options.get(CONF_MAX_AGE_SECONDS, DEFAULT_MAX_AGE_SECONDS)
-        return (time.monotonic() - adv.timestamp) < max_age
+        if (time.monotonic() - adv.timestamp) >= max_age:
+            return False
+        min_rssi: int = self._entry.options.get(CONF_MIN_RSSI, DEFAULT_MIN_RSSI)
+        return adv.rssi >= min_rssi
 
 
 __all__ = ["D15NDeviceTracker", "async_setup_entry"]
