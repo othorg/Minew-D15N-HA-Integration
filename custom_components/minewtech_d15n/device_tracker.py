@@ -15,10 +15,13 @@ changes ``max_age_seconds`` without requiring an entry reload.
 from __future__ import annotations
 
 import time
+from datetime import timedelta
 from typing import TYPE_CHECKING
 
 from homeassistant.components.device_tracker.config_entry import ScannerEntity
 from homeassistant.components.device_tracker.const import SourceType
+from homeassistant.core import callback
+from homeassistant.helpers.event import async_track_time_interval
 
 from .const import (
     CONF_MAX_AGE_SECONDS,
@@ -30,11 +33,19 @@ from .const import (
 from .entity_base import D15NEntity
 
 if TYPE_CHECKING:
+    from datetime import datetime
+
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
     from .coordinator import D15NPassiveCoordinator
+
+
+# How often to re-evaluate `is_connected` when no advertisements arrive.
+# Without this, the property would only refresh on incoming ADVs and the
+# tracker would never flip to not_home once the beacon is out of range.
+_PRESENCE_REFRESH_INTERVAL = timedelta(seconds=30)
 
 
 async def async_setup_entry(
@@ -85,6 +96,21 @@ class D15NDeviceTracker(D15NEntity, ScannerEntity):
         not be registered.  Override to use our own stable identifier.
         """
         return self._attr_unique_id
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        # The coordinator listener only fires on incoming ADVs, so when the
+        # beacon goes silent there is nothing to trigger a state write.
+        # Tick on a fixed interval to re-evaluate the staleness threshold.
+        self.async_on_remove(
+            async_track_time_interval(
+                self.hass, self._async_refresh_presence, _PRESENCE_REFRESH_INTERVAL
+            )
+        )
+
+    @callback
+    def _async_refresh_presence(self, _now: datetime) -> None:
+        self.async_write_ha_state()
 
     @property
     def is_connected(self) -> bool:
