@@ -183,6 +183,7 @@ async def run_capture(
     mac: str | None,
     service_uuid: str | None,
     scanning_mode: Literal["active", "passive"],
+    scan_uuids: list[str] | None,
 ) -> int:
     path = out_dir / f"d15n_{scenario}.jsonl"
     sink = Sink(path)
@@ -205,11 +206,16 @@ async def run_capture(
         record["scenario"] = scenario
         sink.write(record)
 
-    scanner = BleakScanner(detection_callback=callback, scanning_mode=scanning_mode)
+    scanner = BleakScanner(
+        detection_callback=callback,
+        scanning_mode=scanning_mode,
+        service_uuids=scan_uuids,
+    )
 
     print(
         f"[sniff] scenario={scenario!r} duration={duration:.0f}s "
         f"mode={scanning_mode} platform={platform.system()} "
+        f"scan_uuids={scan_uuids} "
         f"filters: name~{name_prefix!r} mac~{mac!r} uuid~{service_uuid!r}"
     )
 
@@ -275,12 +281,21 @@ def _build_parser() -> argparse.ArgumentParser:
         help="BleakScanner scanning_mode (default: active). 'passive' mirrors "
         "Home Assistant's bluetooth integration but requires BlueZ on Linux.",
     )
+    p.add_argument(
+        "--scan-uuids",
+        help="Comma-separated service UUIDs forwarded to BleakScanner. "
+        "On macOS this is required to receive service-data payloads (CoreBluetooth "
+        "drops service-data for ADVs whose UUIDs are not in the scan filter).",
+    )
     return p
 
 
 def main(argv: Iterable[str] | None = None) -> int:
     args = _build_parser().parse_args(list(argv) if argv is not None else None)
     duration: float = args.long_run if args.long_run is not None else args.duration
+    scan_uuids: list[str] | None = None
+    if args.scan_uuids:
+        scan_uuids = [u.strip().lower() for u in args.scan_uuids.split(",") if u.strip()]
     return asyncio.run(
         run_capture(
             scenario=args.scenario,
@@ -290,6 +305,7 @@ def main(argv: Iterable[str] | None = None) -> int:
             mac=args.mac,
             service_uuid=args.service_uuid,
             scanning_mode=args.scanning_mode,
+            scan_uuids=scan_uuids,
         )
     )
 

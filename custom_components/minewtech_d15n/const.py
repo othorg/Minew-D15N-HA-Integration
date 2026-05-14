@@ -8,9 +8,18 @@ DOMAIN: Final = "minewtech_d15n"
 MANUFACTURER: Final = "Minewtech"
 MODEL: Final = "D15N"
 
-# Bluetooth matcher constants — final values verified in Phase 1 (Capture #8).
+# Bluetooth matcher constants — verified in Phase 1 captures (2026-05-14,
+# docs/adv-format.md). The D15N broadcasts a vendor-specific service UUID
+# in every Eddystone advertisement; local_name is never present in the
+# beacon-mode ADV header.
+SERVICE_UUID_VENDOR: Final = "7f280001-8204-f393-e0a9-e50e24dcca9e"
+SERVICE_UUID_EDDYSTONE: Final = "0000feaa-0000-1000-8000-00805f9b34fb"
 SERVICE_UUID_CONFIG: Final = "a3c87500-8ed3-4bdf-8a39-a01bebede295"
-LOCAL_NAME_PREFIX: Final = "MinewT_"
+
+# Eddystone frame type bytes (first byte of service-data under FEAA).
+EDDYSTONE_FRAME_TYPE_UID: Final = 0x00
+EDDYSTONE_FRAME_TYPE_URL: Final = 0x10
+EDDYSTONE_FRAME_TYPE_TLM: Final = 0x20
 
 # Coordinator behaviour
 DEFAULT_MAX_AGE_SECONDS: Final = 300

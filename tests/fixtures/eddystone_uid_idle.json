@@ -1,0 +1,14 @@
+{
+  "description": "Eddystone-UID idle frame from physical D15N (2026-05-14)",
+  "source_capture": "captures/d15n_idle.jsonl",
+  "service_uuid": "0000feaa-0000-1000-8000-00805f9b34fb",
+  "service_data_hex": "00e800112233445566778899abcde76b01f4",
+  "address_macos_uuid": "A7F051DC-7BF6-4006-3B8A-5A1C5FEE43F2",
+  "rssi_sample": -35,
+  "tx_power_at_0m_dbm": -24,
+  "expected": {
+    "frame_type": "UID",
+    "namespace_hex": "00112233445566778899",
+    "instance_hex": "abcde76b01f4"
+  }
+}

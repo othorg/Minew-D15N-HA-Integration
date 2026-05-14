@@ -11,8 +11,7 @@
   "requirements": [],
   "bluetooth": [
     {
-      "service_uuid": "a3c87500-8ed3-4bdf-8a39-a01bebede295",
-      "local_name": "MinewT_*",
+      "service_uuid": "7f280001-8204-f393-e0a9-e50e24dcca9e",
       "connectable": false
     }
   ]
