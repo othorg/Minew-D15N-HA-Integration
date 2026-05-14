@@ -1,7 +1,12 @@
 {
   "domain": "minewtech_d15n",
   "name": "Minewtech D15N Beacon",
-  "version": "0.1.0",
+  "bluetooth": [
+    {
+      "service_uuid": "7f280001-8204-f393-e0a9-e50e24dcca9e",
+      "connectable": false
+    }
+  ],
   "codeowners": ["@othorg"],
   "config_flow": true,
   "dependencies": ["bluetooth", "bluetooth_adapters"],
@@ -9,10 +14,5 @@
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/othorg/Minew-D15N-HA-Integration/issues",
   "requirements": [],
-  "bluetooth": [
-    {
-      "service_uuid": "7f280001-8204-f393-e0a9-e50e24dcca9e",
-      "connectable": false
-    }
-  ]
+  "version": "0.1.0"
 }
