@@ -69,4 +69,8 @@ filterwarnings = [
     "ignore::pytest.PytestRemovedIn9Warning",
     # HA Core deprecation chatter from its module load on Python 3.14.
     "ignore::DeprecationWarning:homeassistant",
+    # HA's http component still uses str keys instead of web.AppKey on
+    # aiohttp >= 3.10. We don't own that code; suppress so the bluetooth
+    # dependency tree can finish setup during tests.
+    "ignore::aiohttp.web_exceptions.NotAppKeyWarning",
 ]

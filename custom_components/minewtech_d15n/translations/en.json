@@ -1,0 +1,50 @@
+{
+    "config": {
+        "flow_title": "Minewtech D15N ({address})",
+        "step": {
+            "bluetooth_confirm": {
+                "title": "Minewtech D15N Beacon discovered",
+                "description": "A Minewtech D15N beacon was found nearby.\n\nAddress: `{address}`\nStable identifier: `{stable_id}`\n\nDo you want to add it to Home Assistant?"
+            },
+            "user": {
+                "title": "Add a Minewtech D15N Beacon",
+                "description": "Pick a D15N beacon currently in range. If your beacon isn't listed, move it closer or check that it is powered on.",
+                "data": {
+                    "address": "Beacon"
+                }
+            },
+            "label": {
+                "title": "Manual setup",
+                "description": "No stable identifier can be derived from this beacon's advertisements. Give it a memorable name to keep tracking it across MAC rotations.\n\nNote: this label becomes the device identifier. If the beacon is factory-reset, a new entry has to be created.",
+                "data": {
+                    "label": "Name for this beacon"
+                }
+            }
+        },
+        "error": {
+            "no_stable_id": "Could not extract a stable identifier from the advertisement. Try the manual setup with a label instead.",
+            "label_in_use": "This label is already used by another beacon. Choose a more specific name (e.g. 'Mama's keychain' instead of 'keys')."
+        },
+        "abort": {
+            "already_configured": "This Minewtech D15N is already set up in Home Assistant.",
+            "device_lost": "The selected beacon is no longer in range. Move it closer and try again.",
+            "no_devices_found": "No Minewtech D15N beacons are currently visible to Home Assistant. Make sure the beacon is powered on and within Bluetooth range.",
+            "no_stable_id": "This advertisement does not carry a stable identifier. Use the manual setup with a label to track the beacon anyway.",
+            "not_d15n": "This Bluetooth device does not look like a Minewtech D15N beacon."
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "title": "Minewtech D15N options",
+                "description": "Tune how long Home Assistant waits before marking the beacon as away.",
+                "data": {
+                    "max_age_seconds": "Away after (seconds)"
+                },
+                "data_description": {
+                    "max_age_seconds": "If no advertisement is seen for this many seconds, the device_tracker switches to 'not_home'. Lower values catch departures faster but flap when the signal is briefly blocked. Default: 300."
+                }
+            }
+        }
+    }
+}

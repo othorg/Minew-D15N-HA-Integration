@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from typing import Any
+from unittest.mock import patch
 
 import pytest
 from custom_components.minewtech_d15n.const import (
@@ -80,3 +81,34 @@ def tlm_fixture() -> dict[str, Any]:
 def ibeacon_fixture() -> dict[str, Any]:
     """iBeacon fixture captured via HA on hci0 (Linux/BlueZ)."""
     return load_fixture("ibeacon_d15n.json")
+
+
+@pytest.fixture(autouse=True)
+def auto_enable_custom_integrations(enable_custom_integrations: Any) -> None:
+    """Make the local `custom_components/` tree available to every test.
+
+    Without this fixture HA's loader treats the integration as not-
+    installed and ``async_init`` of the config flow raises
+    ``UnknownHandler``. The upstream fixture is parametrised per-test;
+    yielding via autouse keeps the integration discoverable across the
+    whole suite.
+    """
+    return None
+
+
+@pytest.fixture(autouse=True)
+def stub_bluetooth_history_loader() -> Any:
+    """Mock the bluetooth manager's adapter-history bootstrap.
+
+    HA's ``async_load_history_from_system`` crashes inside the test
+    environment because there is no real BlueZ / CoreBluetooth backend
+    to serve adapter metadata. The function only matters at startup
+    (recovering the last-seen advertisement cache after restart) — we
+    can replace it with a no-op that returns empty dicts for the
+    duration of every test.
+    """
+    with patch(
+        "homeassistant.components.bluetooth.manager.async_load_history_from_system",
+        return_value=({}, {}),
+    ):
+        yield

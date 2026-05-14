@@ -16,6 +16,14 @@ PLATFORMS: Final = ("device_tracker", "sensor")
 # Key under which the BLE address is persisted in ConfigEntry.data.
 CONF_ADDRESS: Final = "address"
 
+# Snapshot fields written to entry.data at config-flow time for diagnostics
+# (not authoritative; the runtime address lives on the coordinator).
+CONF_ADDRESS_TYPE: Final = "address_type"
+CONF_STABLE_ID: Final = "stable_id"
+
+# Options-flow keys + range for the device_tracker timeout.
+CONF_MAX_AGE_SECONDS: Final = "max_age_seconds"
+
 # Bluetooth matcher constants — verified in Phase 1 captures (2026-05-14,
 # docs/adv-format.md). The D15N broadcasts a vendor-specific service UUID
 # in every Eddystone advertisement; local_name is never present in the

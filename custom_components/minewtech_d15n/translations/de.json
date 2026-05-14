@@ -1,0 +1,50 @@
+{
+    "config": {
+        "flow_title": "Minewtech D15N ({address})",
+        "step": {
+            "bluetooth_confirm": {
+                "title": "Minewtech-D15N-Beacon gefunden",
+                "description": "In der Nähe wurde ein Minewtech-D15N-Beacon entdeckt.\n\nAdresse: `{address}`\nStabile Kennung: `{stable_id}`\n\nMöchtest du ihn zu Home Assistant hinzufügen?"
+            },
+            "user": {
+                "title": "Minewtech-D15N-Beacon hinzufügen",
+                "description": "Wähle einen aktuell in Reichweite befindlichen D15N-Beacon. Falls dein Beacon nicht aufgelistet ist, bring ihn näher heran oder prüfe, ob er eingeschaltet ist.",
+                "data": {
+                    "address": "Beacon"
+                }
+            },
+            "label": {
+                "title": "Manuelle Einrichtung",
+                "description": "Aus den Advertisements dieses Beacons lässt sich keine stabile Kennung ableiten. Vergib einen einprägsamen Namen, um ihn auch über MAC-Rotationen hinweg zu verfolgen.\n\nHinweis: Das Label dient als Geräte-Identifikator. Wenn der Beacon zurückgesetzt wird, muss ein neuer Eintrag angelegt werden.",
+                "data": {
+                    "label": "Name für diesen Beacon"
+                }
+            }
+        },
+        "error": {
+            "no_stable_id": "Aus dem Advertisement konnte keine stabile Kennung extrahiert werden. Nutze die manuelle Einrichtung mit einem Label.",
+            "label_in_use": "Dieses Label ist bereits einem anderen Beacon zugeordnet. Verwende eine eindeutigere Beschreibung, z. B. „Schlüsselband Mama“ statt „Schlüssel“."
+        },
+        "abort": {
+            "already_configured": "Dieser Minewtech D15N ist in Home Assistant bereits eingerichtet.",
+            "device_lost": "Der ausgewählte Beacon ist nicht mehr in Reichweite. Bring ihn näher heran und versuche es erneut.",
+            "no_devices_found": "Aktuell sind keine Minewtech-D15N-Beacons für Home Assistant sichtbar. Stelle sicher, dass der Beacon eingeschaltet und in Bluetooth-Reichweite ist.",
+            "no_stable_id": "Dieses Advertisement enthält keine stabile Kennung. Nutze die manuelle Einrichtung mit einem Label, um den Beacon trotzdem zu verfolgen.",
+            "not_d15n": "Dieses Bluetooth-Gerät sieht nicht wie ein Minewtech-D15N-Beacon aus."
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "title": "Minewtech-D15N-Optionen",
+                "description": "Stelle ein, wie lange Home Assistant wartet, bevor der Beacon als abwesend markiert wird.",
+                "data": {
+                    "max_age_seconds": "Abwesend nach (Sekunden)"
+                },
+                "data_description": {
+                    "max_age_seconds": "Wenn für diese Anzahl Sekunden kein Advertisement empfangen wird, wechselt der device_tracker auf „not_home“. Niedrigere Werte erkennen Abwesenheit schneller, neigen aber zu Flapping wenn das Signal kurz blockiert ist. Standard: 300."
+                }
+            }
+        }
+    }
+}
