@@ -11,7 +11,7 @@ Strategy:
 from __future__ import annotations
 
 import time
-from datetime import UTC
+from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -155,14 +155,19 @@ class TestSensorValues:
         sensor = D15NLastSeenSensor(coord, STABLE_ID)
         assert sensor.native_value is None
 
-    def test_last_seen_returns_utc_datetime(self) -> None:
+    def test_last_seen_returns_utc_datetime_near_now(self) -> None:
         coord = _make_bare_coordinator()
-        ts = time.monotonic()
-        coord._last_advertisement = _make_advertisement(timestamp=ts)
+        coord._last_advertisement = _make_advertisement(
+            timestamp=time.monotonic()  # just-received ADV
+        )
         sensor = D15NLastSeenSensor(coord, STABLE_ID)
         result = sensor.native_value
         assert result is not None
         assert result.tzinfo is UTC
+        # Must be within 2 seconds of now (not ~1970 from a raw monotonic
+        # timestamp passed to datetime.fromtimestamp).
+        now = datetime.now(tz=UTC)
+        assert abs((result - now).total_seconds()) < 2
 
 
 # ---------------------------------------------------------------------------

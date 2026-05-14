@@ -60,7 +60,11 @@ class D15NPassiveCoordinator(
 
     @callback
     def async_add_listener(self, listener: Callable[[], None]) -> Callable[[], None]:
-        """Register a callback invoked after every successfully parsed ADV.
+        """Register a callback invoked after every ADV update, including None.
+
+        Listeners fire even when the parser returns ``None`` (e.g. a non-D15N
+        frame slips through, or the device becomes unavailable). Consumers
+        should read ``last_advertisement`` and handle ``None`` gracefully.
 
         Returns a de-registration callable suitable for use with
         ``Entity.async_on_remove``.
